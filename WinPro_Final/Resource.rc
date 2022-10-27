@@ -1,0 +1,142 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "winres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// 한국어(대한민국) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_KOR)
+LANGUAGE LANG_KOREAN, SUBLANG_DEFAULT
+#pragma code_page(949)
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""winres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDB_ANGRY               BITMAP                  "angry124.159.bmp"
+
+IDB_BACK1               BITMAP                  "back1.bmp"
+
+IDB_BACK2               BITMAP                  "back2.bmp"
+
+IDB_BACK3               BITMAP                  "back3.bmp"
+
+IDB_BACK4               BITMAP                  "back4.bmp"
+
+IDB_CRY                 BITMAP                  "cry124,159.bmp"
+
+IDB_HAPPY               BITMAP                  "happy124,159.bmp"
+
+IDB_NORMAL              BITMAP                  "normal124,159.bmp"
+
+IDB_CRAB                BITMAP                  "crab85.61.bmp"
+
+IDB_JELLY               BITMAP                  "jelly27.30.bmp"
+
+IDB_SQUID               BITMAP                  "squid47.72.bmp"
+
+IDB_HOOK                BITMAP                  "hook536.1500.bmp"
+
+IDB_NET                 BITMAP                  "net1364.2438.bmp"
+
+IDB_SHARK               BITMAP                  "shark97.64.bmp"
+
+IDB_EXP                 BITMAP                  "exp.bmp"
+
+IDB_STAT                BITMAP                  "sta.bmp"
+
+IDB_OBS                 BITMAP                  "obs.bmp"
+
+IDB_AGE                 BITMAP                  "age.bmp"
+
+IDB_FOOD                BITMAP                  "footButton836.834.bmp"
+
+IDB_FLOOR               BITMAP                  "floor1080.84.bmp"
+
+IDB_STARFISH            BITMAP                  "starfish37.51.bmp"
+
+IDB_PLAY                BITMAP                  "playbutton.bmp"
+
+IDB_OBS2                BITMAP                  "JellyFish.bmp"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_MENU1 MENU
+BEGIN
+    POPUP "Mode"
+    BEGIN
+        MENUITEM "Easy",                        ID_MODE_EASY
+        MENUITEM "Normal",                      ID_MODE_NORMAL
+        MENUITEM "Hard",                        ID_MODE_HARD
+    END
+    POPUP "BackGround"
+    BEGIN
+        MENUITEM "Back1",                       ID_BACKGROUND_BACK1
+        MENUITEM "Back2",                       ID_BACKGROUND_BACK2
+        MENUITEM "Back3",                       ID_BACKGROUND_BACK3
+        MENUITEM "Back4",                       ID_BACKGROUND_BACK4
+    END
+    POPUP "Status"
+    BEGIN
+        MENUITEM "On",                          ID_STATUS_ON
+        MENUITEM "Off",                         ID_STATUS_OFF
+        MENUITEM "Auto",                        ID_STATUS_AUTO
+    END
+END
+
+#endif    // 한국어(대한민국) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
