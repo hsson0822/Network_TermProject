@@ -147,12 +147,10 @@
     <ClCompile Include="Fish.cpp" />
     <ClCompile Include="Food.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="MiniGame.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Fish.h" />
     <ClInclude Include="Food.h" />
-    <ClInclude Include="MiniGame.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>

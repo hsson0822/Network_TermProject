@@ -9,7 +9,6 @@
 #include "resource.h"
 #include "Fish.h"
 #include "Food.h"
-#include "MiniGame.h"
 
 using namespace std;
 
@@ -22,7 +21,6 @@ int GetExpPer(Fish& fish);
 int CheckAge(int);
 
 RECT rect;
-MiniGame mg;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdParam, int nCmdShow)
 {
@@ -45,7 +43,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
 	WndClass.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
 	RegisterClassEx(&WndClass);
 
-	hWnd = CreateWindow(lpszClass, lpszWindowName, WS_OVERLAPPEDWINDOW, 0, 0, 1000, 800, NULL, (HMENU)NULL, hInstance, NULL);
+	int width = GetSystemMetrics(SM_CXSCREEN);
+	int height = GetSystemMetrics(SM_CYSCREEN);
+
+	hWnd = CreateWindow(lpszClass, lpszWindowName, WS_OVERLAPPEDWINDOW, 0, 0, width, height-100, NULL, (HMENU)NULL, hInstance, NULL);
 	ShowWindow(hWnd, nCmdShow);
 	UpdateWindow(hWnd);
 
@@ -71,18 +72,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	static HBITMAP foodButtonImage;
 	static HBITMAP jelly, crab, squid;
 	static HBITMAP net, hook, shark;
-	static HBITMAP starfish;
-	static int starfishCount;
-	static int starfishX;
 
-	static HBITMAP stat, expbar;
-	static HBITMAP aging, obs1, obs2;
+	static HBITMAP obs1, obs2;
 	static HBRUSH hBrush, oldBrush;
 	static BOOL seeStat;
 
 	static int selectBack;
 
-	static Fish fish(0,0);
+	static Fish fish(0, 0);
 
 	static vector<Food*> foods;
 	static int foodKinds;
@@ -110,9 +107,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	static int sharkY;
 	static int sharkWave;
 
-	static TCHAR str[100];
-	static RECT mgStartButton;
-	static BOOL mgPlay;
 	static HBITMAP playbutton;
 
 	static int angryCount;
@@ -140,27 +134,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		net = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_NET));
 		hook = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_HOOK));
 		shark = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_SHARK));
-		starfish = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_STARFISH));
 		foodButtonImage = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_FOOD));
 
-		stat = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_STAT));
-		expbar = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_EXP));
-		aging = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_AGE));
 		obs1 = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_OBS));
 		obs2 = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_OBS2));
 		playbutton = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_PLAY));
 
 		seeStat = FALSE;
 
-		mgStartButton = { rect.right - 200, rect.bottom - 100, rect.right - 100, rect.bottom };
-		mgPlay = false;
 		angryCount = 0;
 		autoMode = FALSE;
 
 		selectBack = 1;
 
-		fish.setRect(RECT{ rect.right / 2 , rect.bottom / 2,(rect.right/2)+ fish.getWidth(),(rect.bottom / 2) + fish.getHeight() });
-		foodButton = { rect.right-100,rect.bottom-100,rect.right,rect.bottom };
+		fish.setRect(RECT{ rect.right / 2 , rect.bottom / 2,(rect.right / 2) + fish.getWidth(),(rect.bottom / 2) + fish.getHeight() });
+		foodButton = { rect.right - 100,rect.bottom - 100,rect.right,rect.bottom };
 		foodCount = 0;
 		foodMax = 20;
 
@@ -169,8 +157,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		eventOut = false;
 
 		sharkWave = 0;
-		starfishCount = 0;
-		starfishX = rect.right-37;
 
 		foodExp = 25;
 
@@ -275,20 +261,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				if (foodKinds == 0)
 				{
 					//해파리
-					foods.push_back(new Food(0,randX, randY,27,30,4));
+					foods.push_back(new Food(0, randX, randY, 27, 30, 4));
 				}
-				else if(foodKinds == 1)
+				else if (foodKinds == 1)
 				{
 					//게
-					foods.push_back(new Food(1,randX, randY,85,61,2));
+					foods.push_back(new Food(1, randX, randY, 85, 61, 2));
 				}
 				else
 				{
 					//오징어
-					foods.push_back(new Food(2,randX, randY,47,72,10));
+					foods.push_back(new Food(2, randX, randY, 47, 72, 10));
 				}
-			
-				
+
+
 				++foodCount;
 			}
 		}
@@ -346,27 +332,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			}
 		}
 
-		// 미니게임 시작버튼
-		if (PtInRect(&mgStartButton, mousePoint)) {
-			if (!mgPlay) {
-				mg.resetGame(rect);
-				mgPlay = TRUE;
-				KillTimer(hWnd, 1);
-				KillTimer(hWnd, 2);
-				KillTimer(hWnd, 3);
-				KillTimer(hWnd, 4);
-				KillTimer(hWnd, 5);
-				KillTimer(hWnd, 7);
-				SetTimer(hWnd, 6, 70, NULL);
-			}
-		}
-		// 미니게임 클릭
-		if (mgPlay) {
-			mg.miniGameClick(mousePoint);
-		}
-
 		break;
-	
+
 
 	case WM_TIMER:
 		switch (wParam)
@@ -404,36 +371,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			}
 
 			oldBit2 = (HBITMAP)SelectObject(memDC2, floor);
-			TransparentBlt(memDC1, 0, rect.bottom-80, rect.right, 84, memDC2, 0, 0, rect.right, 84, RGB(255, 1, 1));
-			
-			oldBit2 = (HBITMAP)SelectObject(memDC2, starfish);
-			TransparentBlt(memDC1, starfishX, rect.bottom-131, 37, 51, memDC2, starfishCount*37, 0, 37, 51, RGB(255, 1, 1));
-			if (starfishX < 0)
-			{
-				TransparentBlt(memDC1, rect.right+starfishX, rect.bottom-131, 37, 51, memDC2, starfishCount*37, 0, 37, 51, RGB(255, 1, 1));
-				if (starfishX < 0)
-					starfishX = rect.right - 37;
-			}
-			starfishX -= 10;
-
-			++starfishCount;
-			if (starfishCount > 6)
-				starfishCount = 0;
-
-
+			TransparentBlt(memDC1, 0, rect.bottom - 80, rect.right, 84, memDC2, 0, 0, rect.right, 84, RGB(255, 1, 1));
 
 			//물고기
-			//Rectangle(memDC1, fish.getRect().left, fish.getRect().top, fish.getRect().right, fish.getRect().bottom);
-			//Rectangle(memDC1, fish.getRect().left, fish.getRect().top + (fish.getHeight() / 10 * 2), fish.getRect().right, fish.getRect().bottom - (fish.getHeight() / 10 * 2));
-
-			//if (!caught)
-			//{
-			//	oldBit2 = (HBITMAP)SelectObject(memDC2, normalImage);
-			//	if (fish.isLR())
-			//		TransparentBlt(memDC1, fish.getRect().left, fish.getRect().top, fish.getWidth(), fish.getHeight(), memDC2, 124 * fish.getMoveCount(), 159, 124, 159, RGB(255, 1, 1));
-			//	else
-			//		TransparentBlt(memDC1, fish.getRect().left, fish.getRect().top, fish.getWidth(), fish.getHeight(), memDC2, 124 * fish.getMoveCount(), 0, 124, 159, RGB(255, 1, 1));
-			//}
 
 			if (!caught)
 			{
@@ -489,20 +429,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				}
 
 				f->addMoveCount();
-				if (f->getMoveCount() > f->getMaxCount()-1)
+				if (f->getMoveCount() > f->getMaxCount() - 1)
 					f->resetMoveCount();
 			}
 
 			//이벤트
-			switch(eventNum)
+			switch (eventNum)
 			{
 			case 0:
 				oldBit2 = (HBITMAP)SelectObject(memDC2, net);
 				//Rectangle(memDC1, netRect.left, netRect.top, netRect.right, netRect.bottom);
-				if(netDir == 0)
-					TransparentBlt(memDC1, netRect.left, netRect.top, 200,400, memDC2, 1364, 0, 1364, 2438, RGB(255, 1, 1));
+				if (netDir == 0)
+					TransparentBlt(memDC1, netRect.left, netRect.top, 200, 400, memDC2, 1364, 0, 1364, 2438, RGB(255, 1, 1));
 				else
-					TransparentBlt(memDC1, netRect.left, netRect.top, 200,400, memDC2, 0, 0, 1364, 2438, RGB(255, 1, 1));
+					TransparentBlt(memDC1, netRect.left, netRect.top, 200, 400, memDC2, 0, 0, 1364, 2438, RGB(255, 1, 1));
 				break;
 
 			case 1:
@@ -512,10 +452,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				break;
 			case 2:
 				oldBit2 = (HBITMAP)SelectObject(memDC2, shark);
-				if(sharkDir == 0)
-					TransparentBlt(memDC1, sharkRect.left, sharkRect.top, 200, 100, memDC2, 97*sharkCount, 34, 97, 34, RGB(255, 1, 1));
+				if (sharkDir == 0)
+					TransparentBlt(memDC1, sharkRect.left, sharkRect.top, 200, 100, memDC2, 97 * sharkCount, 34, 97, 34, RGB(255, 1, 1));
 				else
-					TransparentBlt(memDC1, sharkRect.left, sharkRect.top, 200, 100, memDC2, 97*sharkCount, 0, 97, 34, RGB(255, 1, 1));
+					TransparentBlt(memDC1, sharkRect.left, sharkRect.top, 200, 100, memDC2, 97 * sharkCount, 0, 97, 34, RGB(255, 1, 1));
 
 				++sharkCount;
 				if (sharkCount > 2)
@@ -547,7 +487,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			oldBit2 = (HBITMAP)SelectObject(memDC2, foodButtonImage);
 			//Rectangle(memDC1, foodButton.left, foodButton.top, foodButton.right, foodButton.bottom);
 			TransparentBlt(memDC1, foodButton.left, foodButton.top, 100, 100, memDC2, 0, 0, 836, 834, RGB(255, 1, 1));
-			
+
 
 			SelectObject(memDC2, oldBit2);
 			DeleteObject(memDC2);
@@ -557,12 +497,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			ReleaseDC(hWnd, hDC);
 			break;
 
-		//먹이 낙하
+			//먹이 낙하
 		case 2:
 			for (vector<Food*>::iterator iter = foods.begin(); iter != foods.end(); ++iter)
 			{
 				(*iter)->setY((*iter)->getY() + 4);
-				if ((*iter)->getY() > rect.bottom-120)
+				if ((*iter)->getY() > rect.bottom - 120)
 				{
 					iter = foods.erase(iter);
 					--foodCount;
@@ -571,10 +511,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				if (iter == foods.end())
 					break;
 			}
-			
+
 			break;
 
-		//물고기 이동 및 먹이 섭취
+			//물고기 이동 및 먹이 섭취
 		case 3:
 			if (!caught)
 			{
@@ -603,7 +543,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				{
 					//아래
 					fish.setRect(RECT{ fish.getRect().left,fish.getRect().top + 20, fish.getRect().right, fish.getRect().bottom + 20 });
-					if (fish.getRect().bottom > rect.bottom-80)
+					if (fish.getRect().bottom > rect.bottom - 80)
 						fish.setRect(RECT{ fish.getRect().left,fish.getRect().top - 20, fish.getRect().right, fish.getRect().bottom - 20 });
 				}
 			}
@@ -613,7 +553,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				{
 					if (netDir == 0)
 					{
-						fish.setRect(RECT{ fish.getRect().left+10,fish.getRect().top, fish.getRect().right+ 10, fish.getRect().bottom });
+						fish.setRect(RECT{ fish.getRect().left + 10,fish.getRect().top, fish.getRect().right + 10, fish.getRect().bottom });
 					}
 					else
 					{
@@ -622,14 +562,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				}
 				else if (eventNum == 1)
 				{
-					fish.setRect(RECT{ fish.getRect().left,fish.getRect().top-5, fish.getRect().right, fish.getRect().bottom-5 });
+					fish.setRect(RECT{ fish.getRect().left,fish.getRect().top - 5, fish.getRect().right, fish.getRect().bottom - 5 });
 				}
 				else if (eventNum == 2)
 				{
-					if(sharkDir == 0)
-						fish.setRect(RECT{ fish.getRect().left+7,fish.getRect().top, fish.getRect().right+7, fish.getRect().bottom });
+					if (sharkDir == 0)
+						fish.setRect(RECT{ fish.getRect().left + 7,fish.getRect().top, fish.getRect().right + 7, fish.getRect().bottom });
 					else
-						fish.setRect(RECT{ fish.getRect().left-7,fish.getRect().top, fish.getRect().right-7, fish.getRect().bottom });
+						fish.setRect(RECT{ fish.getRect().left - 7,fish.getRect().top, fish.getRect().right - 7, fish.getRect().bottom });
 				}
 			}
 
@@ -668,7 +608,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 			break;
 
-		// 이벤트 생성
+			// 이벤트 생성
 		case 4:
 			eventNum = rand() % 3;
 			//eventNum = 0;
@@ -689,7 +629,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					netRect = { rect.right, rect.top, rect.right + 200, rect.top + 400 };
 				}
 			}
-			else if( eventNum == 1)
+			else if (eventNum == 1)
 			{
 				hookX = rand() % rect.right;
 				hookCount = 0;
@@ -699,15 +639,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			{
 				sharkDir = rand() % 2;
 				sharkY = rand() % rect.bottom;
-				if(sharkDir==0)
-					sharkRect = {rect.left- 200, sharkY,rect.left,sharkY+100};
+				if (sharkDir == 0)
+					sharkRect = { rect.left - 200, sharkY,rect.left,sharkY + 100 };
 				else
-					sharkRect = {rect.right, sharkY,rect.right+200,sharkY +100};
+					sharkRect = { rect.right, sharkY,rect.right + 200,sharkY + 100 };
 			}
 
 			break;
 
-		// 이벤트 재생
+			// 이벤트 재생
 		case 5:
 			switch (eventNum)
 			{
@@ -715,11 +655,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			case 0:
 				if (netDir == 0)
 				{
-					netRect = { netRect.left + 10, netRect.top, netRect.right+ 10,netRect.bottom };
+					netRect = { netRect.left + 10, netRect.top, netRect.right + 10,netRect.bottom };
 				}
 				else
 				{
-					netRect = { netRect.left - 10, netRect.top, netRect.right- 10,netRect.bottom };
+					netRect = { netRect.left - 10, netRect.top, netRect.right - 10,netRect.bottom };
 				}
 
 				if (!caught && !eventOut)
@@ -733,15 +673,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				}
 				break;
 
-			//낚시 바늘
+				//낚시 바늘
 			case 1:
 				if (hookCount < 60)
 				{
-					hookRect = { hookRect.left,hookRect.top+ 5 ,hookRect.right, hookRect.bottom +5 };
+					hookRect = { hookRect.left,hookRect.top + 5 ,hookRect.right, hookRect.bottom + 5 };
 				}
-				else if(hookCount > 200)
+				else if (hookCount > 200)
 				{
-					hookRect = { hookRect.left,hookRect.top- 5 ,hookRect.right,hookRect.bottom -5 };
+					hookRect = { hookRect.left,hookRect.top - 5 ,hookRect.right,hookRect.bottom - 5 };
 				}
 				++hookCount;
 
@@ -749,7 +689,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				{
 					RECT temp;
 					RECT fishRect = RECT{ fish.getRect().left, fish.getRect().top + (fish.getHeight() / 10 * 2), fish.getRect().right, fish.getRect().bottom - (fish.getHeight() / 10 * 2) };
-					RECT hookR = RECT{ hookRect.left,hookRect.top+240,hookRect.right-40,hookRect.bottom };
+					RECT hookR = RECT{ hookRect.left,hookRect.top + 240,hookRect.right - 40,hookRect.bottom };
 					if (IntersectRect(&temp, &hookR, &fishRect))
 					{
 						caught = true;
@@ -758,7 +698,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				}
 				break;
 
-			//상어
+				//상어
 			case 2:
 				if (sharkDir == 0)
 				{
@@ -803,14 +743,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				break;
 			}
 			break;
-
-		// 미니게임 타이머
-		case 6:
-			if (mgPlay) {
-				mg.miniGameTimer();
-				InvalidateRect(hWnd, NULL, TRUE);
-			}
-			break;
 		case 7:
 			if (foodCount < foodMax)
 			{
@@ -837,15 +769,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				++foodCount;
 			}
 			break;
-		}
-		break;
-
-	case WM_RBUTTONDOWN:
-		if (seeStat) {
-			seeStat = FALSE;
-		}
-		else {
-			seeStat = TRUE;
 		}
 		break;
 
@@ -894,67 +817,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_PAINT:
 		hDC = BeginPaint(hWnd, &ps);
 		// Growing Fish
-		if (!mgPlay) {
-			memDC1 = CreateCompatibleDC(hDC);
-			oldBit1 = (HBITMAP)SelectObject(memDC1, hBitmap);
 
-			// 마우스 우클릭시 출력
-			memDC2 = CreateCompatibleDC(memDC1);
-			if (seeStat) {
-				oldBit2 = (HBITMAP)SelectObject(memDC2, stat);
-				TransparentBlt(memDC1, 10, 10, 980, 100, memDC2, 0, 0, 420, 180, RGB(255, 255, 255));
+		memDC1 = CreateCompatibleDC(hDC);
+		oldBit1 = (HBITMAP)SelectObject(memDC1, hBitmap);
 
-				SelectObject(memDC2, oldBit2);
-				oldBit2 = (HBITMAP)SelectObject(memDC2, expbar);
-				TransparentBlt(memDC1, 50, 80, 850, 20, memDC2, 0, 150 * GetExpPer(fish), 900, 150, RGB(255, 255, 255));
-				SelectObject(memDC2, oldBit2);
+		memDC2 = CreateCompatibleDC(memDC1);
 
-				oldBit2 = (HBITMAP)SelectObject(memDC2, aging);
-				if (fish.getAge() < 10) {
-					TransparentBlt(memDC1, 700, 30, 30, 40, memDC2, CheckAge(fish.getAge()), 0, 230, 487, RGB(255, 255, 255));
-				}
-				else {
-					TransparentBlt(memDC1, 700, 30, 30, 40, memDC2, CheckAge(fish.getAge() / 10), 0, 230, 487, RGB(255, 255, 255));
-					TransparentBlt(memDC1, 735, 30, 30, 40, memDC2, CheckAge(fish.getAge() % 10), 0, 230, 487, RGB(255, 255, 255));
-				}
-				SelectObject(memDC2, oldBit2);
-			}
-			oldBit2 = (HBITMAP)SelectObject(memDC2, playbutton);
-			TransparentBlt(memDC1, mgStartButton.left, mgStartButton.top, 100, 100, memDC2, 0, 0, 1280, 1280, RGB(255, 255, 255));
-			SelectObject(memDC2, oldBit2);
+		BitBlt(hDC, 0, 0, rect.right, rect.bottom, memDC1, 0, 0, SRCCOPY);
+		//Rectangle(hDC, mgStartButton.left, mgStartButton.top, mgStartButton.right, mgStartButton.bottom);
+		SelectObject(memDC1, oldBit1);
+		DeleteObject(memDC2);
+		DeleteObject(memDC1);
 
-			BitBlt(hDC, 0, 0, rect.right, rect.bottom, memDC1, 0, 0, SRCCOPY);
-			//Rectangle(hDC, mgStartButton.left, mgStartButton.top, mgStartButton.right, mgStartButton.bottom);
-			SelectObject(memDC1, oldBit1);
-			DeleteObject(memDC2);
-			DeleteObject(memDC1);
-		}
-		// MiniGame
-		else {
-			if (mg.showScore() < 50 )
-				mgPlay = mg.miniGamePaint(hDC, normalImage, back1, obs1, obs2);
-			else if (mg.showScore() < 100)
-				mgPlay = mg.miniGamePaint(hDC, normalImage, back2, obs1, obs2);
-			else if (mg.showScore() < 150)
-				mgPlay = mg.miniGamePaint(hDC, normalImage, back3, obs1, obs2);
-			else
-				mgPlay = mg.miniGamePaint(hDC, normalImage, back4, obs1, obs2);
-			
-			if (!mgPlay) {
-				fish.setExp(fish.getExp() + static_cast<int>(mg.showScore() / 5));
-
-				if (fish.getExp() > fish.getMaxExp())
-					fish.addAge();
-				wsprintf(str, L"Score: %d\n %d 경험치 획득", mg.showScore(), static_cast<int>(mg.showScore() / 5));
-				MessageBox(hWnd, str, L"GameOver", MB_OK);
-				SetTimer(hWnd, 1, 70, NULL);	// 기본
-				SetTimer(hWnd, 2, 70, NULL);	// 먹이 낙하
-				SetTimer(hWnd, 3, 70, NULL);	// 물고기 이동 / 먹이 섭취
-				SetTimer(hWnd, 4, 20000, NULL);	// 이벤트 생성 20초
-				SetTimer(hWnd, 5, 70, NULL);	// 이벤트 진행
-				KillTimer(hWnd, 6);
-			}
-		}
 		EndPaint(hWnd, &ps);
 		break;
 

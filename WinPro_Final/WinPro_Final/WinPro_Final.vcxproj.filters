@@ -21,9 +21,6 @@
     <ClCompile Include="Fish.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="MiniGame.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
     <ClCompile Include="Food.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
@@ -33,9 +30,6 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="Fish.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="MiniGame.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="Food.h">
