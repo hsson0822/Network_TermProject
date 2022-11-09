@@ -181,6 +181,8 @@
     <Image Include="squid47.72.bmp" />
     <Image Include="sta.bmp" />
     <Image Include="starfish37.51.bmp" />
+    <Image Include="start_btn1271.401.bmp" />
+    <Image Include="start_btn985.269.bmp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

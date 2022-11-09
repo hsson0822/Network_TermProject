@@ -8,7 +8,7 @@ Fish::Fish(int x, int y)
 	exp = 0;
 	maxExp = 20;
 	rect = { x,y,x + width, y + height };
-	moveDir = 0;
+	moveDir = 4;
 }
 
 

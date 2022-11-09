@@ -114,5 +114,11 @@
     <Image Include="JellyFish.bmp">
       <Filter>리소스 파일</Filter>
     </Image>
+    <Image Include="start_btn985.269.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="start_btn1271.401.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
   </ItemGroup>
 </Project>

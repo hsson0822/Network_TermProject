@@ -92,9 +92,9 @@ IDB_FLOOR               BITMAP                  "floor1080.84.bmp"
 
 IDB_STARFISH            BITMAP                  "starfish37.51.bmp"
 
-IDB_PLAY                BITMAP                  "playbutton.bmp"
-
 IDB_OBS2                BITMAP                  "JellyFish.bmp"
+
+IDB_PLAY                BITMAP                  "start_btn1271.401.bmp"
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -116,12 +116,6 @@ BEGIN
         MENUITEM "Back2",                       ID_BACKGROUND_BACK2
         MENUITEM "Back3",                       ID_BACKGROUND_BACK3
         MENUITEM "Back4",                       ID_BACKGROUND_BACK4
-    END
-    POPUP "Status"
-    BEGIN
-        MENUITEM "On",                          ID_STATUS_ON
-        MENUITEM "Off",                         ID_STATUS_OFF
-        MENUITEM "Auto",                        ID_STATUS_AUTO
     END
 END
 

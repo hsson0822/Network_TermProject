@@ -46,7 +46,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
 	int width = GetSystemMetrics(SM_CXSCREEN);
 	int height = GetSystemMetrics(SM_CYSCREEN);
 
-	hWnd = CreateWindow(lpszClass, lpszWindowName, WS_OVERLAPPEDWINDOW, 0, 0, width, height-100, NULL, (HMENU)NULL, hInstance, NULL);
+	hWnd = CreateWindow(lpszClass, lpszWindowName, WS_OVERLAPPEDWINDOW, 0, 0, width, height - 100, NULL, (HMENU)NULL, hInstance, NULL);
 	ShowWindow(hWnd, nCmdShow);
 	UpdateWindow(hWnd);
 
@@ -75,7 +75,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	static HBITMAP obs1, obs2;
 	static HBRUSH hBrush, oldBrush;
-	static BOOL seeStat;
+
+	static BOOL isGameStart = false;
 
 	static int selectBack;
 
@@ -107,7 +108,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	static int sharkY;
 	static int sharkWave;
 
-	static HBITMAP playbutton;
+	static HBITMAP playButton;
+	static RECT playButtonRect;
 
 	static int angryCount;
 	static int foodExp;
@@ -138,9 +140,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 		obs1 = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_OBS));
 		obs2 = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_OBS2));
-		playbutton = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_PLAY));
 
-		seeStat = FALSE;
+		playButton = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_PLAY));
 
 		angryCount = 0;
 		autoMode = FALSE;
@@ -151,6 +152,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		foodButton = { rect.right - 100,rect.bottom - 100,rect.right,rect.bottom };
 		foodCount = 0;
 		foodMax = 20;
+
+		playButtonRect = { rect.right / 2 - 100 , rect.bottom / 2 + 200 , rect.right / 2 + 100, rect.bottom / 2 + 300 };
+		//playButtonRect = { rect.right - 100,rect.bottom - 100,rect.right,rect.bottom };
 
 		caught = false;
 		eventNum = 5;
@@ -163,13 +167,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		PlaySound(L"Aquarium.wav", NULL, SND_ASYNC | SND_LOOP);
 
 		SetTimer(hWnd, 1, 70, NULL);	// 기본
-		SetTimer(hWnd, 2, 70, NULL);	// 먹이 낙하
-		SetTimer(hWnd, 3, 70, NULL);	// 물고기 이동 / 먹이 섭취
-		SetTimer(hWnd, 4, 20000, NULL);	// 이벤트 생성 20초
-		SetTimer(hWnd, 5, 70, NULL);	// 이벤트 진행
+
 		break;
 
 	case WM_KEYDOWN:
+		if (!isGameStart)
+			break;
 		switch (wParam)
 		{
 		case VK_LEFT:
@@ -240,17 +243,58 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		case VK_NUMPAD4:
 			selectBack = 4;
 			break;
-		case 'S':
-			if (!seeStat)
-				seeStat = TRUE;
-			else
-				seeStat = FALSE;
-			break;
 		}
 		break;
 
+	case WM_KEYUP:
+		if (!isGameStart)
+			break;
+		switch (wParam)
+		{
+		case VK_LEFT:
+			fish.setXY(false);
+			fish.setLR(false);
+			fish.setMoveDir(4);
+			break;
+		case VK_RIGHT:
+			fish.setXY(false);
+			fish.setLR(true);
+			fish.setMoveDir(4);
+			break;
+		case VK_UP:
+		case VK_DOWN:
+			if (caught)
+				break;
+			if (fish.isLR())
+			{
+				fish.setXY(false);
+				fish.setLR(true);
+			}
+			else
+			{
+				fish.setXY(false);
+				fish.setLR(false);
+			}
+			fish.setMoveDir(4);
+			break;
+		}
+
 	case WM_LBUTTONDOWN:
 		mousePoint = { LOWORD(lParam),HIWORD(lParam) };
+
+		if (PtInRect(&playButtonRect, mousePoint))
+		{
+			isGameStart = true;
+
+			SetTimer(hWnd, 2, 70, NULL);	// 먹이 낙하
+			SetTimer(hWnd, 3, 70, NULL);	// 물고기 이동 / 먹이 섭취
+			SetTimer(hWnd, 4, 20000, NULL);	// 이벤트 생성 20초
+			SetTimer(hWnd, 5, 70, NULL);	// 이벤트 진행
+		}
+
+		if (!isGameStart)
+			break;
+
 		if (PtInRect(&foodButton, mousePoint))
 		{
 			if (foodCount < foodMax)
@@ -393,7 +437,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					angryCount++;
 				}
 			}
-
 			else
 			{
 				oldBit2 = (HBITMAP)SelectObject(memDC2, cryImage);
@@ -405,8 +448,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			fish.addMoveCount();
 			if (fish.getMoveCount() > 3)
 				fish.resetMoveCount();
-
-
 
 			//먹이
 			for (auto* f : foods)
@@ -467,7 +508,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				break;
 			}
 
-
 			if (caught)
 			{
 				if (fish.getRect().right < rect.left || fish.getRect().bottom < rect.top || fish.getRect().left > rect.right || fish.getRect().top > rect.bottom)
@@ -483,10 +523,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				}
 			}
 
+			if (!isGameStart)
+			{
+				oldBit2 = (HBITMAP)SelectObject(memDC2, playButton);
+				TransparentBlt(memDC1, playButtonRect.left, playButtonRect.top, 200, 100, memDC2, 0, 0, 1271, 401, RGB(255, 255, 255));
+				//Rectangle(memDC1, playButtonRect.left, playButtonRect.top, playButtonRect.right, playButtonRect.bottom);
+			}
+			else
+			{
+				oldBit2 = (HBITMAP)SelectObject(memDC2, foodButtonImage);
+				//Rectangle(memDC1, foodButton.left, foodButton.top, foodButton.right, foodButton.bottom);
+				TransparentBlt(memDC1, foodButton.left, foodButton.top, 100, 100, memDC2, 0, 0, 836, 834, RGB(255, 1, 1));
+			}
 
-			oldBit2 = (HBITMAP)SelectObject(memDC2, foodButtonImage);
-			//Rectangle(memDC1, foodButton.left, foodButton.top, foodButton.right, foodButton.bottom);
-			TransparentBlt(memDC1, foodButton.left, foodButton.top, 100, 100, memDC2, 0, 0, 836, 834, RGB(255, 1, 1));
 
 
 			SelectObject(memDC2, oldBit2);
@@ -539,7 +588,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					if (fish.getRect().top < rect.top)
 						fish.setRect(RECT{ fish.getRect().left,fish.getRect().top + 20, fish.getRect().right, fish.getRect().bottom + 20 });
 				}
-				else
+				else if (fish.getMoveDir() == 3)
 				{
 					//아래
 					fish.setRect(RECT{ fish.getRect().left,fish.getRect().top + 20, fish.getRect().right, fish.getRect().bottom + 20 });
@@ -795,22 +844,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		case ID_BACKGROUND_BACK4:
 			selectBack = 4;
 			break;
-		case ID_STATUS_ON:
-			seeStat = TRUE;
-			break;
-		case ID_STATUS_OFF:
-			seeStat = FALSE;
-			break;
-		case ID_STATUS_AUTO:
-			if (autoMode) {
-				KillTimer(hWnd, 7);
-				autoMode = FALSE;
-			}
-			else {
-				autoMode = TRUE;
-				SetTimer(hWnd, 7, 1000, NULL);
-			}
-			break;
 		}
 		break;
 
@@ -824,7 +857,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		memDC2 = CreateCompatibleDC(memDC1);
 
 		BitBlt(hDC, 0, 0, rect.right, rect.bottom, memDC1, 0, 0, SRCCOPY);
-		//Rectangle(hDC, mgStartButton.left, mgStartButton.top, mgStartButton.right, mgStartButton.bottom);
 		SelectObject(memDC1, oldBit1);
 		DeleteObject(memDC2);
 		DeleteObject(memDC1);
