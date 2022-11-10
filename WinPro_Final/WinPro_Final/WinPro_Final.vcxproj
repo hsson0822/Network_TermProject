@@ -149,8 +149,10 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Enum.h" />
     <ClInclude Include="Fish.h" />
     <ClInclude Include="Food.h" />
+    <ClInclude Include="Packet.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
