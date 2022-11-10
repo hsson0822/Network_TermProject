@@ -2,19 +2,30 @@
 #include <WS2tcpip.h>
 #include <iostream>
 #include <array>
+#include "protocol.h"
 
 #pragma comment(lib,"ws2_32")
-
-constexpr unsigned short PORT = 9000;
-constexpr int BUF_SIZE = 5000;
 
 // 클라이언트의 정보가 담김
 class client {
 private:
 	short x, y;		// x,y 좌표
 	short size;		// 물고기 크기
+	int id;			// 클라이언트 구분용 id
 
 public:
+	bool is_ready;
+
+public:
+	client() {
+		x = 0;
+		y = 0;
+		size = 0;
+		id = 0;
+		is_ready = false;
+	}
+	~client() {};
+
 	void SetX(short pos_x) { x = pos_x; }
 	void SetY(short pos_y) { y = pos_y; }
 	void SetSize(short size) { size = size; }
@@ -24,24 +35,8 @@ public:
 	short GetSize() const { return size; }
 };
 
-// 오브젝트들의 정보가 담김
-class object {
-private:
-	short x, y;		// 오브젝트 좌표
-	char type;		// 오브젝트 종류
-
-public:
-	void SetX(short pos_x) { x = pos_x; }
-	void SetY(short pos_y) { y = pos_y; }
-	void SetSize(short type) { type = type; }
-
-	short GetX() const { return x; };
-	short GetY() const { return y; };
-	short GetType() const { return type; }
-};
-
-std::array<client, 3> clients;		// 클라이언트들의 컨테이너
-std::array<object, 100> objects;	// 오브젝트 컨테이너
+std::array<client, MAX_USER> clients;			// 클라이언트들의 컨테이너
+std::array<object_info, MAX_OBJECT> objects;	// 오브젝트 정보가 담길 컨테이너
 
 // 오류 검사용 함수
 void err_display(const char* msg)
@@ -75,6 +70,9 @@ DWORD WINAPI RecvThread(LPVOID arg)
 		else if (0 == retval) {
 			return 0;
 		}
+
+		// 버퍼 처리
+
 	}
 
 	closesocket(client_socket);
