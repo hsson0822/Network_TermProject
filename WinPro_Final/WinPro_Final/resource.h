@@ -29,6 +29,8 @@
 #define IDR_MENU1                       126
 #define IDB_PNG1                        131
 #define IDB_PLAY                        134
+#define IDB_BITMAP1                     135
+#define IDB_LOADING                     135
 #define ID_BACKGROUND_BACK1             40003
 #define ID_BACKGROUND_BACK2             40004
 #define ID_BACKGROUND_BACK3             40005
@@ -41,7 +43,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        135
+#define _APS_NEXT_RESOURCE_VALUE        136
 #define _APS_NEXT_COMMAND_VALUE         40011
 #define _APS_NEXT_CONTROL_VALUE         1001
 #define _APS_NEXT_SYMED_VALUE           101

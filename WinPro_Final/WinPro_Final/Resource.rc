@@ -96,6 +96,8 @@ IDB_OBS2                BITMAP                  "JellyFish.bmp"
 
 IDB_PLAY                BITMAP                  "start_btn1271.401.bmp"
 
+IDB_LOADING             BITMAP                  "loading260.bmp"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //

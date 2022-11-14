@@ -77,6 +77,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	static HBRUSH hBrush, oldBrush;
 
 	static BOOL isGameStart = false;
+	static BOOL isLoading = false;
 
 	static int selectBack;
 
@@ -111,6 +112,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	static HBITMAP playButton;
 	static RECT playButtonRect;
 
+	static HBITMAP loading;
+	static RECT loadingRect;
+	static int loadingCount;
+
 	static int angryCount;
 	static int foodExp;
 	static BOOL autoMode;
@@ -142,6 +147,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		obs2 = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_OBS2));
 
 		playButton = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_PLAY));
+		loading = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_LOADING));
 
 		angryCount = 0;
 		autoMode = FALSE;
@@ -154,7 +160,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		foodMax = 20;
 
 		playButtonRect = { rect.right / 2 - 100 , rect.bottom / 2 + 200 , rect.right / 2 + 100, rect.bottom / 2 + 300 };
-		//playButtonRect = { rect.right - 100,rect.bottom - 100,rect.right,rect.bottom };
+		
+		loadingRect = { rect.right / 2 - 50 , rect.bottom / 2 + 200 , rect.right / 2 + 100, rect.bottom / 2 + 300 };
+		loadingCount = 0;
 
 		caught = false;
 		eventNum = 5;
@@ -225,7 +233,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					//오징어
 					foods.push_back(new Food(2, randX, randY, 47, 72, 10));
 				}
-
 
 				++foodCount;
 			}
@@ -528,6 +535,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				oldBit2 = (HBITMAP)SelectObject(memDC2, playButton);
 				TransparentBlt(memDC1, playButtonRect.left, playButtonRect.top, 200, 100, memDC2, 0, 0, 1271, 401, RGB(255, 255, 255));
 				//Rectangle(memDC1, playButtonRect.left, playButtonRect.top, playButtonRect.right, playButtonRect.bottom);
+
+				isGameStart = false;
+				isLoading = true;
+			}
+			else if (isLoading)
+			{
+				//로딩 이미지
+				oldBit2 = (HBITMAP)SelectObject(memDC2, loading);
+				TransparentBlt(memDC1, loadingRect.left, loadingRect.top, 100, 100, memDC2, 261 * loadingCount, 0, 261, 260, RGB(255, 255, 255));
+				++loadingCount;
+				if (loadingCount > 7)
+					loadingCount = 0;
+
+				//패킷 확인
 			}
 			else
 			{
