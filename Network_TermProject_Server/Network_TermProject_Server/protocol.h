@@ -10,7 +10,7 @@ enum PacketType {
 	CS_PLAYER_MOVE,			// 클라 -> 서버		이동
 	CS_LBUTTONCLICK,		// 클라 -> 서버		왼쪽 마우스버튼 클릭
 	SC_PLAYER_DEAD,			// 서버 -> 클라		플레이어 사망
-	CS_PLAYER,READY,		// 클라 -> 서버		준비 완료
+	CS_PLAYER_READY,		// 클라 -> 서버		준비 완료
 	SC_GAME_START,			// 서버 -> 클라		게임 시작
 	SC_GAME_OVER,			// 서버 -> 클라		게임 종료
 	SC_ACCEPT_PACKET,		// 서버 -> 클라		접속 
