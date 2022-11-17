@@ -20,6 +20,8 @@ enum PacketType {
 	SC_ERASE_FOOD,			// 서버 -> 클라		먹이 제거
 	SC_CREATE_OBSTACLE,		// 서버 -> 클라		장애물 생성
 	SC_ERASE_OBSTACLE,		// 서버 -> 클라		장애물 제거
+	CS_LOGIN,				// 클라 -> 서버		플레이어 접속
+	SC_LOGIN_OK,			// 서버 -> 클라		플레이어 접속 확인
 };
 
 // 오브젝트 type 구분
@@ -64,6 +66,15 @@ struct SC_MOVE_PACKET {
 	char type;
 	int id;
 	position pos;
+};
+
+struct CS_LOGIN_PACKET {
+	char type;
+};
+
+struct SC_LOGIN_OK_PACKET {
+	char type;
+	int id;
 };
 
 struct CS_MOVE_PACKET {

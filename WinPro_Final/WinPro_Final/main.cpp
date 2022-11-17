@@ -1,4 +1,4 @@
-#pragma comment (lib, "msimg32.lib")
+ï»¿#pragma comment (lib, "msimg32.lib")
 #pragma comment (lib, "winmm.lib")
 #pragma comment(lib,"ws2_32")
 
@@ -26,15 +26,17 @@ int CheckAge(int);
 
 RECT rect;
 
-WSADATA wsa;
+HANDLE hThread;
 SOCKET sock;
+WSADATA wsa;
 int retval;
 
-char* SERVERIP = (char*)"127.0.0.1";
-#define SERVERPORT 9000
-#define BUFSIZE    8192
+// ìì‹ ì˜ id êµ¬ë¶„
+int id;
 
-// ¿À·ù °Ë»ç¿ë ÇÔ¼ö
+char* SERVERIP = (char*)"127.0.0.1";
+
+// ì˜¤ë¥˜ ê²€ì‚¬ìš© í•¨ìˆ˜
 void err_display(const char* msg)
 {
 	LPVOID lpMsgBuf;
@@ -47,6 +49,81 @@ void err_display(const char* msg)
 	LocalFree(lpMsgBuf);
 }
 
+
+// í´ë¼ì´ì–¸íŠ¸ì—ì„œ ë„¤íŠ¸ì›Œí¬ í†µì‹ ìš© ì“°ë ˆë“œ
+DWORD WINAPI NetworkThread(LPVOID arg)
+{
+	int retval;
+	SOCKET sock = reinterpret_cast<SOCKET>(arg);
+
+	int len{};
+	char buf[BUF_SIZE];
+	char send_buf[BUF_SIZE];
+
+	// ì ‘ì† í›„ ë°”ë¡œ ë¡œê·¸ì¸ íŒ¨í‚·ì„ ë³´ëƒ„
+	CS_LOGIN_PACKET packet;
+	packet.type = CS_LOGIN;
+
+	ZeroMemory(send_buf, BUF_SIZE);
+	memcpy(send_buf, &packet, sizeof(packet));
+
+	retval = send(sock, send_buf, sizeof(packet), 0);
+	if (retval == SOCKET_ERROR) err_display("send()");
+	// ë³¸ì¸ + ë‹¤ë¥¸ í”Œë ˆì´ì–´	ë°°ì—´ ì´ˆê¸°í™”ë¥¼ ìœ„í•´ íŒ¨í‚· ì „ì†¡ ë° ë°›ê¸°
+
+
+	while (true) {
+		retval = recv(sock, buf, BUF_SIZE, 0);
+		if (SOCKET_ERROR == retval) {
+			err_display("file size recv()");
+			return 0;
+		}
+		else if (0 == retval) {
+			return 0;
+		}
+
+		// ë²„í¼ ì²˜ë¦¬ 
+		switch (buf[0]) {
+		case SC_LOGIN_OK:
+			// ë³¸ì¸ì˜ id ê¸°ë¡
+			// í´ë¼ì´ì–¸íŠ¸ì—ì„œ ìì‹  + ë‹¤ë¥¸ í”Œë ˆì´ì–´ë¥¼ ê·¸ë¦´ ë•Œ
+			// ë³¸ì¸ì˜ idë¥¼ í†µí•´ êµ¬ë¶„í•˜ë©´ ë¨
+		{
+			SC_LOGIN_OK_PACKET* packet = reinterpret_cast<SC_LOGIN_OK_PACKET*>(buf);
+			id = packet->id;
+		}
+			CS_READY_PACKET packet;
+			packet.type = CS_PLAYER_READY;
+			packet.id = id;
+
+			memcpy(send_buf, &packet, sizeof(packet));
+
+			retval = send(sock, send_buf, sizeof(packet), 0);
+			if (retval == SOCKET_ERROR) {
+				err_display("send()");
+			}
+			break;
+
+		case SC_GAME_START:
+			printf("ê²Œì„ ì‹œì‘");
+			break;
+
+		case CS_LBUTTONCLICK:
+			break;
+
+		case CS_PLAYER_READY:
+	
+			break;
+
+		}
+
+	}
+
+	closesocket(sock);
+
+	return 0;
+
+}
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdParam, int nCmdShow)
 {
@@ -200,7 +277,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 		PlaySound(L"Aquarium.wav", NULL, SND_ASYNC | SND_LOOP);
 
-		SetTimer(hWnd, 1, 70, NULL);	// ±âº»
+		SetTimer(hWnd, 1, 70, NULL);	// ê¸°ë³¸
 
 		break;
 
@@ -246,17 +323,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				randY = rand() % rect.bottom;
 				if (foodKinds == 0)
 				{
-					//ÇØÆÄ¸®
+					//í•´íŒŒë¦¬
 					foods.push_back(new Food(0, randX, randY, 27, 30, 4));
 				}
 				else if (foodKinds == 1)
 				{
-					//°Ô
+					//ê²Œ
 					foods.push_back(new Food(1, randX, randY, 85, 61, 2));
 				}
 				else
 				{
-					//¿ÀÂ¡¾î
+					//ì˜¤ì§•ì–´
 					foods.push_back(new Food(2, randX, randY, 47, 72, 10));
 				}
 
@@ -314,16 +391,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	case WM_LBUTTONDOWN:
 		mousePoint = { LOWORD(lParam),HIWORD(lParam) };
-
+		
 		if (PtInRect(&playButtonRect, mousePoint))
 		{
 			isGameStart = true;
 
-			// À©¼Ó ÃÊ±âÈ­
+			// ìœˆì† ì´ˆê¸°í™”
 			if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
 				return 1;
 
-			// ¼ÒÄÏ »ı¼º
+			// ì†Œì¼“ ìƒì„±
 			sock = socket(AF_INET, SOCK_STREAM, 0);
 			if (sock == INVALID_SOCKET) err_display("socket()");
 
@@ -332,10 +409,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			memset(&serveraddr, 0, sizeof(serveraddr));
 			serveraddr.sin_family = AF_INET;
 			inet_pton(AF_INET, SERVERIP, &serveraddr.sin_addr);
-			serveraddr.sin_port = htons(SERVERPORT);
+			serveraddr.sin_port = htons(PORT);
 			retval = connect(sock, (struct sockaddr*)&serveraddr, sizeof(serveraddr));
 			if (retval == SOCKET_ERROR) err_display("connect()");
 
+			hThread = CreateThread(nullptr, 0, NetworkThread,
+				reinterpret_cast<LPVOID>(sock), 0, nullptr);
+			if (!hThread)
+				closesocket(sock);
+			else
+				CloseHandle(hThread);
 		}
 
 		if (!isGameStart)
@@ -350,17 +433,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				randY = rand() % rect.bottom;
 				if (foodKinds == 0)
 				{
-					//ÇØÆÄ¸®
+					//í•´íŒŒë¦¬
 					foods.push_back(new Food(0, randX, randY, 27, 30, 4));
 				}
 				else if (foodKinds == 1)
 				{
-					//°Ô
+					//ê²Œ
 					foods.push_back(new Food(1, randX, randY, 85, 61, 2));
 				}
 				else
 				{
-					//¿ÀÂ¡¾î
+					//ì˜¤ì§•ì–´
 					foods.push_back(new Food(2, randX, randY, 47, 72, 10));
 				}
 
@@ -438,7 +521,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			memDC2 = CreateCompatibleDC(memDC1);
 			oldBit1 = (HBITMAP)SelectObject(memDC1, hBitmap);
 
-			//¹è°æÈ­¸é
+			//ë°°ê²½í™”ë©´
 			if (selectBack == 1)
 			{
 				oldBit2 = (HBITMAP)SelectObject(memDC2, back1);
@@ -463,18 +546,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			oldBit2 = (HBITMAP)SelectObject(memDC2, floor);
 			TransparentBlt(memDC1, 0, rect.bottom - 80, rect.right, 84, memDC2, 0, 0, rect.right, 84, RGB(255, 1, 1));
 
-			//¹°°í±â
+			//ë¬¼ê³ ê¸°
 
 			if (!caught)
 			{
-				if (!eventOut || angryCount > 30) { // Æò»ó½Ã
+				if (!eventOut || angryCount > 30) { // í‰ìƒì‹œ
 					oldBit2 = (HBITMAP)SelectObject(memDC2, normalImage);
 					if (fish.isLR())
 						TransparentBlt(memDC1, fish.getRect().left, fish.getRect().top, fish.getWidth(), fish.getHeight(), memDC2, 124 * fish.getMoveCount(), 159, 124, 159, RGB(255, 1, 1));
 					else
 						TransparentBlt(memDC1, fish.getRect().left, fish.getRect().top, fish.getWidth(), fish.getHeight(), memDC2, 124 * fish.getMoveCount(), 0, 124, 159, RGB(255, 1, 1));
 				}
-				else if (eventOut) { // ÀÌº¥Æ® 5È¸ Å¬¸¯
+				else if (eventOut) { // ì´ë²¤íŠ¸ 5íšŒ í´ë¦­
 					oldBit2 = (HBITMAP)SelectObject(memDC2, angryImage);
 					if (fish.isLR())
 						TransparentBlt(memDC1, fish.getRect().left, fish.getRect().top, fish.getWidth(), fish.getHeight(), memDC2, 124 * fish.getMoveCount(), 159, 124, 159, RGB(255, 1, 1));
@@ -495,7 +578,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			if (fish.getMoveCount() > 3)
 				fish.resetMoveCount();
 
-			//¸ÔÀÌ
+			//ë¨¹ì´
 			for (auto* f : foods)
 			{
 				//Ellipse(memDC1, f->getX(), f->getY(), f->getX() + 10, f->getY() + 10);
@@ -520,7 +603,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					f->resetMoveCount();
 			}
 
-			//ÀÌº¥Æ®
+			//ì´ë²¤íŠ¸
 			switch (eventNum)
 			{
 			case 0:
@@ -563,7 +646,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					KillTimer(hWnd, 3);
 					KillTimer(hWnd, 4);
 					KillTimer(hWnd, 5);
-					MessageBox(hWnd, L"°³º¹Ä¡°¡ ÀâÇô°¬½À´Ï´Ù. ¤Ğ¤Ì", L"Game Over", MB_OK);
+					MessageBox(hWnd, L"ê°œë³µì¹˜ê°€ ì¡í˜€ê°”ìŠµë‹ˆë‹¤. ã… ã…œ", L"Game Over", MB_OK);
 					PlaySound(NULL, NULL, NULL);
 					PostQuitMessage(0);
 				}
@@ -578,36 +661,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				isGameStart = false;
 				isLoading = true;
 
-				CS_READY_PACKET packet;
-				packet.type = CS_PLAYER_READY;
-				packet.id = 1;
-
-				char buf[BUF_SIZE];
-				memcpy(buf, &packet, sizeof(packet));
-
-				retval = send(sock, buf, sizeof(int), 0);
-				if (retval == SOCKET_ERROR) {
-					err_display("send()");
-				}
+			
 			}
 			else if (isLoading)
 			{
-				//·Îµù ÀÌ¹ÌÁö
+				//ë¡œë”© ì´ë¯¸ì§€
 				oldBit2 = (HBITMAP)SelectObject(memDC2, loading);
 				TransparentBlt(memDC1, loadingRect.left, loadingRect.top, 100, 100, memDC2, 261 * loadingCount, 0, 261, 260, RGB(255, 255, 255));
 				++loadingCount;
 				if (loadingCount > 7)
 					loadingCount = 0;
 
-				//ÆĞÅ¶ È®ÀÎ
+				//íŒ¨í‚· í™•ì¸
 				/*retval = send(sock, (char*)&fileNameSize, sizeof(int), 0);
 				if (retval == SOCKET_ERROR) {
 					err_display("send()");
 				}*/
-				//SetTimer(hWnd, 2, 70, NULL);	// ¸ÔÀÌ ³«ÇÏ
-				//SetTimer(hWnd, 3, 70, NULL);	// ¹°°í±â ÀÌµ¿ / ¸ÔÀÌ ¼·Ãë
-				//SetTimer(hWnd, 4, 20000, NULL);	// ÀÌº¥Æ® »ı¼º 20ÃÊ
-				//SetTimer(hWnd, 5, 70, NULL);	// ÀÌº¥Æ® ÁøÇà
+				//SetTimer(hWnd, 2, 70, NULL);	// ë¨¹ì´ ë‚™í•˜
+				//SetTimer(hWnd, 3, 70, NULL);	// ë¬¼ê³ ê¸° ì´ë™ / ë¨¹ì´ ì„­ì·¨
+				//SetTimer(hWnd, 4, 20000, NULL);	// ì´ë²¤íŠ¸ ìƒì„± 20ì´ˆ
+				//SetTimer(hWnd, 5, 70, NULL);	// ì´ë²¤íŠ¸ ì§„í–‰
 
 			}
 			else
@@ -627,7 +700,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			ReleaseDC(hWnd, hDC);
 			break;
 
-			//¸ÔÀÌ ³«ÇÏ
+			//ë¨¹ì´ ë‚™í•˜
 		case 2:
 			for (vector<Food*>::iterator iter = foods.begin(); iter != foods.end(); ++iter)
 			{
@@ -644,34 +717,34 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 			break;
 
-			//¹°°í±â ÀÌµ¿ ¹× ¸ÔÀÌ ¼·Ãë
+			//ë¬¼ê³ ê¸° ì´ë™ ë° ë¨¹ì´ ì„­ì·¨
 		case 3:
 			if (!caught)
 			{
 				if (fish.getMoveDir() == 0)
 				{
-					//¿ŞÂÊ
+					//ì™¼ìª½
 					fish.setRect(RECT{ fish.getRect().left - 20,fish.getRect().top, fish.getRect().right - 20, fish.getRect().bottom });
 					if (fish.getRect().left < rect.left)
 						fish.setRect(RECT{ fish.getRect().left + 20,fish.getRect().top, fish.getRect().right + 20, fish.getRect().bottom });
 				}
 				else if (fish.getMoveDir() == 1)
 				{
-					//¿À¸¥ÂÊ
+					//ì˜¤ë¥¸ìª½
 					fish.setRect(RECT{ fish.getRect().left + 20,fish.getRect().top, fish.getRect().right + 20, fish.getRect().bottom });
 					if (fish.getRect().right > rect.right)
 						fish.setRect(RECT{ fish.getRect().left - 20,fish.getRect().top, fish.getRect().right - 20, fish.getRect().bottom });
 				}
 				else if (fish.getMoveDir() == 2)
 				{
-					//À§
+					//ìœ„
 					fish.setRect(RECT{ fish.getRect().left,fish.getRect().top - 20, fish.getRect().right, fish.getRect().bottom - 20 });
 					if (fish.getRect().top < rect.top)
 						fish.setRect(RECT{ fish.getRect().left,fish.getRect().top + 20, fish.getRect().right, fish.getRect().bottom + 20 });
 				}
 				else if (fish.getMoveDir() == 3)
 				{
-					//¾Æ·¡
+					//ì•„ë˜
 					fish.setRect(RECT{ fish.getRect().left,fish.getRect().top + 20, fish.getRect().right, fish.getRect().bottom + 20 });
 					if (fish.getRect().bottom > rect.bottom - 80)
 						fish.setRect(RECT{ fish.getRect().left,fish.getRect().top - 20, fish.getRect().right, fish.getRect().bottom - 20 });
@@ -723,14 +796,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					if (iter == foods.end())
 						break;
 				}
-				// Å¬¸®¾î
+				// í´ë¦¬ì–´
 				if (fish.getAge() >= 30) {
 					KillTimer(hWnd, 1);
 					KillTimer(hWnd, 2);
 					KillTimer(hWnd, 3);
 					KillTimer(hWnd, 4);
 					KillTimer(hWnd, 5);
-					MessageBox(hWnd, L"°³º¹Ä¡°¡ ¼ºÀåÀÌ ¿Ï·áµÇ¾ú½À´Ï´Ù!", L"Congratulations", MB_OK);
+					MessageBox(hWnd, L"ê°œë³µì¹˜ê°€ ì„±ì¥ì´ ì™„ë£Œë˜ì—ˆìŠµë‹ˆë‹¤!", L"Congratulations", MB_OK);
 					PlaySound(NULL, NULL, NULL);
 					PostQuitMessage(0);
 				}
@@ -738,13 +811,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 			break;
 
-			// ÀÌº¥Æ® »ı¼º
+			// ì´ë²¤íŠ¸ ìƒì„±
 		case 4:
 			eventNum = rand() % 3;
 			//eventNum = 0;
 			eventClick = 0;
 			eventOut = false;
-			// È­³­ ¾ó±¼
+			// í™”ë‚œ ì–¼êµ´
 			angryCount = 0;
 
 			if (eventNum == 0)
@@ -777,11 +850,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 			break;
 
-			// ÀÌº¥Æ® Àç»ı
+			// ì´ë²¤íŠ¸ ì¬ìƒ
 		case 5:
 			switch (eventNum)
 			{
-				//±×¹°
+				//ê·¸ë¬¼
 			case 0:
 				if (netDir == 0)
 				{
@@ -803,7 +876,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				}
 				break;
 
-				//³¬½Ã ¹Ù´Ã
+				//ë‚šì‹œ ë°”ëŠ˜
 			case 1:
 				if (hookCount < 60)
 				{
@@ -828,7 +901,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				}
 				break;
 
-				//»ó¾î
+				//ìƒì–´
 			case 2:
 				if (sharkDir == 0)
 				{
@@ -881,17 +954,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				randY = rand() % rect.bottom;
 				if (foodKinds == 0)
 				{
-					//ÇØÆÄ¸®
+					//í•´íŒŒë¦¬
 					foods.push_back(new Food(0, randX, randY, 27, 30, 4));
 				}
 				else if (foodKinds == 1)
 				{
-					//°Ô
+					//ê²Œ
 					foods.push_back(new Food(1, randX, randY, 85, 61, 2));
 				}
 				else
 				{
-					//¿ÀÂ¡¾î
+					//ì˜¤ì§•ì–´
 					foods.push_back(new Food(2, randX, randY, 47, 72, 10));
 				}
 
@@ -947,10 +1020,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	case WM_DESTROY:
 		PlaySound(NULL, NULL, NULL);
-		// ¼ÒÄÏ ´İ±â
+		// ì†Œì¼“ ë‹«ê¸°
 		closesocket(sock);
 
-		// À©¼Ó Á¾·á
+		// ìœˆì† ì¢…ë£Œ
 		WSACleanup();
 		PostQuitMessage(0);
 		break;
