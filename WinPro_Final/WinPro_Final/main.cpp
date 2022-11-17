@@ -1,6 +1,9 @@
 #pragma comment (lib, "msimg32.lib")
 #pragma comment (lib, "winmm.lib")
+#pragma comment(lib,"ws2_32")
 
+#include <winsock2.h>
+#include <WS2tcpip.h>
 #include <windows.h>
 #include <tchar.h>
 #include <time.h>
@@ -21,6 +24,28 @@ int GetExpPer(Fish& fish);
 int CheckAge(int);
 
 RECT rect;
+
+WSADATA wsa;
+SOCKET sock;
+int retval;
+
+char* SERVERIP = (char*)"127.0.0.1";
+#define SERVERPORT 9000
+#define BUFSIZE    8192
+
+// 오류 검사용 함수
+void err_display(const char* msg)
+{
+	LPVOID lpMsgBuf;
+	FormatMessageA(
+		FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
+		NULL, WSAGetLastError(),
+		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		(char*)&lpMsgBuf, 0, NULL);
+	printf("[%s] %s\n", msg, (char*)lpMsgBuf);
+	LocalFree(lpMsgBuf);
+}
+
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdParam, int nCmdShow)
 {
@@ -293,10 +318,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		{
 			isGameStart = true;
 
-			SetTimer(hWnd, 2, 70, NULL);	// 먹이 낙하
-			SetTimer(hWnd, 3, 70, NULL);	// 물고기 이동 / 먹이 섭취
-			SetTimer(hWnd, 4, 20000, NULL);	// 이벤트 생성 20초
-			SetTimer(hWnd, 5, 70, NULL);	// 이벤트 진행
+			// 윈속 초기화
+			if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
+				return 1;
+
+			// 소켓 생성
+			sock = socket(AF_INET, SOCK_STREAM, 0);
+			if (sock == INVALID_SOCKET) err_display("socket()");
+
+			// connect()
+			struct sockaddr_in serveraddr;
+			memset(&serveraddr, 0, sizeof(serveraddr));
+			serveraddr.sin_family = AF_INET;
+			inet_pton(AF_INET, SERVERIP, &serveraddr.sin_addr);
+			serveraddr.sin_port = htons(SERVERPORT);
+			retval = connect(sock, (struct sockaddr*)&serveraddr, sizeof(serveraddr));
+			if (retval == SOCKET_ERROR) err_display("connect()");
+
 		}
 
 		if (!isGameStart)
@@ -538,6 +576,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 				isGameStart = false;
 				isLoading = true;
+
+				//retval = send(sock, (char*)&fileNameSize, sizeof(int), 0);
+				//if (retval == SOCKET_ERROR) {
+				//	err_display("send()");
+				//}
 			}
 			else if (isLoading)
 			{
@@ -549,6 +592,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					loadingCount = 0;
 
 				//패킷 확인
+				/*retval = send(sock, (char*)&fileNameSize, sizeof(int), 0);
+				if (retval == SOCKET_ERROR) {
+					err_display("send()");
+				}*/
+				//SetTimer(hWnd, 2, 70, NULL);	// 먹이 낙하
+				//SetTimer(hWnd, 3, 70, NULL);	// 물고기 이동 / 먹이 섭취
+				//SetTimer(hWnd, 4, 20000, NULL);	// 이벤트 생성 20초
+				//SetTimer(hWnd, 5, 70, NULL);	// 이벤트 진행
+
 			}
 			else
 			{
@@ -887,6 +939,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	case WM_DESTROY:
 		PlaySound(NULL, NULL, NULL);
+		// 소켓 닫기
+		closesocket(sock);
+
+		// 윈속 종료
+		WSACleanup();
 		PostQuitMessage(0);
 		break;
 	}
