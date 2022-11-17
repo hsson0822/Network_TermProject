@@ -12,6 +12,7 @@
 #include "resource.h"
 #include "Fish.h"
 #include "Food.h"
+#include "../../Network_TermProject_Server/Network_TermProject_Server/protocol.h"
 
 using namespace std;
 
@@ -577,10 +578,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				isGameStart = false;
 				isLoading = true;
 
-				//retval = send(sock, (char*)&fileNameSize, sizeof(int), 0);
-				//if (retval == SOCKET_ERROR) {
-				//	err_display("send()");
-				//}
+				CS_READY_PACKET packet;
+				packet.type = CS_PLAYER_READY;
+				packet.id = 1;
+
+				char buf[BUF_SIZE];
+				memcpy(buf, &packet, sizeof(packet));
+
+				retval = send(sock, buf, sizeof(int), 0);
+				if (retval == SOCKET_ERROR) {
+					err_display("send()");
+				}
 			}
 			else if (isLoading)
 			{
