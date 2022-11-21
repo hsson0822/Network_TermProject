@@ -2,6 +2,11 @@
 #pragma comment (lib, "winmm.lib")
 #pragma comment(lib,"ws2_32")
 
+// 콘솔 띄우기 명령줄, 코드 작성 완료시 삭제해야 함
+#pragma comment(linker, "/entry:WinMainCRTStartup /subsystem:console")
+#include <iostream>
+// -----------------------------------------
+
 #include <winsock2.h>
 #include <WS2tcpip.h>
 #include <windows.h>
@@ -33,6 +38,7 @@ int retval;
 
 // 자신의 id 구분
 int id;
+BOOL isGameStart = false;
 
 char* SERVERIP = (char*)"127.0.0.1";
 
@@ -49,6 +55,16 @@ void err_display(const char* msg)
 	LocalFree(lpMsgBuf);
 }
 
+// 한번에 여러 패킷이 왔을 때 처리
+// 패킷 하나를 처리하고 남아있다면 버퍼의 내용을 앞으로 당기고
+// 처리한 만큼 남은 패킷의 크기를 감소
+void overload_packet_process(char* buf, int packet_size, int& remain_packet)
+{
+	remain_packet -= packet_size;
+	if (remain_packet > 0) {
+		memcpy(buf, buf + packet_size, BUF_SIZE - packet_size);
+	}
+}
 
 // 클라이언트에서 네트워크 통신용 쓰레드
 DWORD WINAPI NetworkThread(LPVOID arg)
@@ -59,6 +75,8 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 	int len{};
 	char buf[BUF_SIZE];
 	char send_buf[BUF_SIZE];
+
+	int remain_packet{};
 
 	// 접속 후 바로 로그인 패킷을 보냄
 	CS_LOGIN_PACKET packet;
@@ -82,40 +100,71 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 			return 0;
 		}
 
-		// 버퍼 처리 
-		switch (buf[0]) {
-		case SC_LOGIN_OK:
-			// 본인의 id 기록
-			// 클라이언트에서 자신 + 다른 플레이어를 그릴 때
-			// 본인의 id를 통해 구분하면 됨
-		{
-			SC_LOGIN_OK_PACKET* packet = reinterpret_cast<SC_LOGIN_OK_PACKET*>(buf);
-			id = packet->id;
-		}
-			CS_READY_PACKET packet;
-			packet.type = CS_PLAYER_READY;
-			packet.id = id;
+		cout << "받은 패킷 크기" << retval << endl;
+		remain_packet = retval;
+		// 남아있는 패킷 처리
+		while (remain_packet > 0) {
 
-			memcpy(send_buf, &packet, sizeof(packet));
+			//패킷별 처리
+			switch (buf[0]) {
+			case SC_ADD_PLAYER: {
+				// 다른 플레이어 추가
+				SC_ADD_PLAYER_PACKET* packet = reinterpret_cast<SC_ADD_PLAYER_PACKET*>(buf);
 
-			retval = send(sock, send_buf, sizeof(packet), 0);
-			if (retval == SOCKET_ERROR) {
-				err_display("send()");
+				cout << "add player " << packet->id << endl;
+				// fish 배열에 다른 플레이어들을 저장
+
+				overload_packet_process(buf, sizeof(SC_ADD_PLAYER_PACKET), remain_packet);
+				break;
 			}
-			break;
 
-		case SC_GAME_START:
-			printf("게임 시작");
-			break;
+			case SC_LOGIN_OK: {
+				// 본인의 id 기록
+				// 클라이언트에서 자신 + 다른 플레이어를 그릴 때
+				// 본인의 id를 통해 구분하면 됨
+				{
+					SC_LOGIN_OK_PACKET* packet = reinterpret_cast<SC_LOGIN_OK_PACKET*>(buf);
+					id = packet->id;
+				}
 
-		case CS_LBUTTONCLICK:
-			break;
+				cout << "자신의 아이디는 : " << id << endl;
 
-		case CS_PLAYER_READY:
-	
-			break;
+				CS_READY_PACKET packet;
+				packet.type = CS_PLAYER_READY;
+				packet.id = id;
+
+				memcpy(send_buf, &packet, sizeof(packet));
+
+				retval = send(sock, send_buf, sizeof(packet), 0);
+				if (retval == SOCKET_ERROR) {
+					err_display("send()");
+				}
+				overload_packet_process(buf, sizeof(SC_LOGIN_OK_PACKET), remain_packet);
+				break;
+			}
+
+			case SC_GAME_START: {
+				cout << "game start " << endl;
+				isGameStart = true;
+				overload_packet_process(buf, sizeof(SC_GAME_START_PACKET), remain_packet);
+				break;
+			}
+
+			case CS_LBUTTONCLICK: {
+
+				break;
+			}
+
+			case CS_PLAYER_READY: {
+
+				break;
+			}
+
+			}
+			// 패킷 별 처리
 
 		}
+		// 여러 패킷이 한번에 왔을 때 처리
 
 	}
 
@@ -153,6 +202,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
 	ShowWindow(hWnd, nCmdShow);
 	UpdateWindow(hWnd);
 
+
 	while (GetMessage(&Message, 0, 0, 0))
 	{
 		TranslateMessage(&Message);
@@ -179,7 +229,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	static HBITMAP obs1, obs2;
 	static HBRUSH hBrush, oldBrush;
 
-	static BOOL isGameStart = false;
 	static BOOL isLoading = false;
 
 	static int selectBack;

@@ -6,6 +6,8 @@
 
 #pragma comment(lib,"ws2_32")
 
+using namespace std;
+
 // 클라이언트의 정보가 담김
 class client {
 private:
@@ -15,6 +17,7 @@ private:
 public:
 	bool is_ready;
 	int id;			// 클라이언트 구분용 id
+	SOCKET sock;
 	 
 public:
 	client() {
@@ -33,6 +36,17 @@ public:
 	short GetX() const { return x; };
 	short GetY() const { return y; };
 	short GetSize() const { return size; }
+
+	void send_packet(void* packet, int size) {
+		char send_buf[BUF_SIZE];
+		ZeroMemory(send_buf, sizeof(BUF_SIZE));
+
+		memcpy(send_buf, packet, size);
+
+		send(sock, send_buf, size, 0);
+	}
+
+	void send_add_player(int id);
 };
 
 std::array<client, MAX_USER> clients;			// 클라이언트들의 컨테이너
@@ -55,6 +69,22 @@ void err_display(const char* msg)
 	LocalFree(lpMsgBuf);
 }
 
+void client::send_add_player(int id)
+{
+	SC_ADD_PLAYER_PACKET packet;
+	packet.type = SC_ADD_PLAYER;
+	packet.id = id;
+
+	send_packet(&packet, sizeof(SC_ADD_PLAYER_PACKET));
+}
+
+void overload_packet_process(char* buf, int packet_size, int& remain_packet)
+{
+	remain_packet -= packet_size;
+	if (remain_packet > 0) {
+		memcpy(buf, buf + packet_size, BUF_SIZE - packet_size);
+	}
+}
 
 // 클라이언트 별 쓰레드 생성
 DWORD WINAPI RecvThread(LPVOID arg)
@@ -64,8 +94,8 @@ DWORD WINAPI RecvThread(LPVOID arg)
 
 	int len{};
 	char buf[BUF_SIZE];
-
 	char send_buf[BUF_SIZE];
+	int remain_packet{};
 
 	EnterCriticalSection(&id_cs);
 	int this_id = id++;
@@ -81,81 +111,97 @@ DWORD WINAPI RecvThread(LPVOID arg)
 			return 0;
 		}
 
-		// 버퍼 처리 
-		switch (buf[0]) {
-		case CS_PLAYER_MOVE:
-			break;
+		remain_packet = retval;
+		while (remain_packet > 0) {
 
-		case CS_LBUTTONCLICK:
-			break;
+			// 버퍼 처리 
+			switch (buf[0]) {
+			case CS_PLAYER_MOVE: {
 
-		case CS_LOGIN:
-			// 다른 플레이어 정보를 넘김
-			for (auto& client : clients) {
-				// 접속하지 않았다면 넘김
-				if (client.id == -1)
-					continue;
-				// 대상이 나라면 넘김
-				if (client.id == this_id)
-					continue;
+				overload_packet_process(buf, sizeof(CS_MOVE_PACKET), remain_packet);
+				break;
+			}
 
-				SC_ADD_PLAYER_PACKET packet;
-				packet.type = SC_ADD_PLAYER;
-				packet.id = client.id;
+			case CS_LBUTTONCLICK: {
+
+				overload_packet_process(buf, sizeof(CS_CLICK_PACKET), remain_packet);
+				break;
+			}
+
+			case CS_LOGIN: {
+				for (auto& client : clients) {
+					// 접속하지 않았다면 넘김
+					if (client.id == -1)
+						continue;
+					// 대상이 나라면 넘김
+					if (client.id == this_id)
+						continue;
+
+					// 다른 클라이언트 들에 내 정보를 넘김
+					client.send_add_player(this_id);
+
+					// 나한테 다른 클라이언트 정보를 넘김
+					clients[this_id].send_add_player(client.id);
+				}
+
+				// 자신의 id를 넘김
+				SC_LOGIN_OK_PACKET packet;
+				packet.type = SC_LOGIN_OK;
+				packet.id = this_id;
 
 				ZeroMemory(send_buf, sizeof(BUF_SIZE));
 				memcpy(send_buf, &packet, sizeof(packet));
 
 				send(client_socket, send_buf, sizeof(packet), 0);
+
+				overload_packet_process(buf, sizeof(CS_LOGIN_PACKET), remain_packet);
+				break;
 			}
 
-			// 자신의 id를 넘김
-			SC_LOGIN_OK_PACKET packet;
-			packet.type = SC_LOGIN_OK;
+			case CS_PLAYER_READY: {
+				// 클라이언트로부터 준비완료 패킷을 받으면
+				// ready 상태로 변경
 
-			ZeroMemory(send_buf, sizeof(BUF_SIZE));
-			memcpy(send_buf, &packet, sizeof(packet));
+				// 임시 동기화
+				EnterCriticalSection(&cs);
+				clients[this_id].is_ready = true;
+				LeaveCriticalSection(&cs);
 
-			send(client_socket, send_buf, sizeof(packet), 0);
+				int ready_count = 0;
+				for (const auto& client : clients)
+					if (client.is_ready)
+						++ready_count;
 
-			
+				// 3명다 준비했다면 GAME_START_PACKET 전송
+				if (ready_count == MAX_USER) {
+					SC_GAME_START_PACKET packet;
+					packet.type = SC_GAME_START;
 
-			break;
+					ZeroMemory(send_buf, sizeof(BUF_SIZE));
+					memcpy(send_buf, &packet, sizeof(packet));
 
-		case CS_PLAYER_READY:
-			// 클라이언트로부터 준비완료 패킷을 받으면
-			// ready 상태로 변경
-			
-			// 임시 동기화
-			EnterCriticalSection(&cs);
-			clients[this_id].is_ready = true;
-			LeaveCriticalSection(&cs);
 
-			int ready_count = 0;
-			for (const auto& client : clients)
-				if (client.is_ready)
-					++ready_count;
+					for (auto& client : clients) {
+						SC_GAME_START_PACKET packet;
+						packet.type = SC_GAME_START;
 
-			std::cout << ready_count << std::endl;
+						client.send_packet(&packet, sizeof(SC_GAME_START_PACKET));
+					}
 
-			// 3명다 준비했다면 GAME_START_PACKET 전송
-			if (ready_count == MAX_USER) {
-				std::cout << "3명 준비" << std::endl;
-				SC_GAME_START_PACKET packet;
-				packet.type = SC_GAME_START;
+				}
 
-				ZeroMemory(send_buf, sizeof(BUF_SIZE));
-				memcpy(send_buf, &packet, sizeof(packet));
-
-				send(client_socket, send_buf, sizeof(packet), 0);
-				
+				overload_packet_process(buf, sizeof(CS_READY_PACKET), remain_packet);
+				break;
 			}
 
-			break;
+			}
+			// 패킷별 처리 switch
 
 		}
+		// 남은 패킷 처리
 
 	}
+	// recv 종료
 
 	closesocket(client_socket);
 
@@ -216,6 +262,7 @@ int main(int argc, char* argv[])
 
 		EnterCriticalSection(&id_cs);
 		clients[id].id = id;
+		clients[id].sock = client_socket;
 		LeaveCriticalSection(&id_cs);
 
 		 
