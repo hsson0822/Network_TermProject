@@ -31,6 +31,7 @@ int CheckAge(int);
 
 RECT rect;
 
+HWND hWnd;
 HANDLE hThread;
 SOCKET sock;
 WSADATA wsa;
@@ -38,6 +39,7 @@ int retval;
 
 // 자신의 id 구분
 int id;
+BOOL isReady = false;
 BOOL isGameStart = false;
 
 char* SERVERIP = (char*)"127.0.0.1";
@@ -145,8 +147,13 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 
 			case SC_GAME_START: {
 				cout << "game start " << endl;
+				isReady = false;
 				isGameStart = true;
 				overload_packet_process(buf, sizeof(SC_GAME_START_PACKET), remain_packet);
+				SetTimer(hWnd, 2, 70, NULL);	// 먹이 낙하
+				SetTimer(hWnd, 3, 70, NULL);	// 물고기 이동 / 먹이 섭취
+				SetTimer(hWnd, 4, 20000, NULL);	// 이벤트 생성 20초
+				SetTimer(hWnd, 5, 70, NULL);	// 이벤트 진행
 				break;
 			}
 
@@ -176,7 +183,6 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdParam, int nCmdShow)
 {
-	HWND hWnd;
 	MSG Message;
 	WNDCLASSEX WndClass;
 	g_hInst = hInstance;
@@ -220,7 +226,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	HBITMAP oldBit1, oldBit2;
 	static HBITMAP hBitmap;
-	static HBITMAP back1, back2, back3, back4, floor;
+	static HBITMAP back1;
 	static HBITMAP normalImage, angryImage, cryImage, happyImage;
 	static HBITMAP foodButtonImage;
 	static HBITMAP jelly, crab, squid;
@@ -228,8 +234,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	static HBITMAP obs1, obs2;
 	static HBRUSH hBrush, oldBrush;
-
-	static BOOL isLoading = false;
 
 	static int selectBack;
 
@@ -272,6 +276,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	static int foodExp;
 	static BOOL autoMode;
 
+	CS_MOVE_PACKET movePacket;
+
+	char send_buf[BUF_SIZE];
+
 	switch (uMsg)
 	{
 	case WM_CREATE:
@@ -279,10 +287,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		GetClientRect(hWnd, &rect);
 
 		back1 = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_BACK1));
-		back2 = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_BACK2));
-		back3 = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_BACK3));
-		back4 = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_BACK4));
-		floor = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_FLOOR));
 		normalImage = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_NORMAL));
 		angryImage = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_ANGRY));
 		cryImage = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_CRY));
@@ -333,11 +337,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_KEYDOWN:
 		if (!isGameStart)
 			break;
+
 		switch (wParam)
 		{
 		case VK_LEFT:
 			if (caught)
 				break;
+			movePacket.type = PLAYER_LEFT_DOWN;
 			fish.setXY(true);
 			fish.setLR(false);
 			fish.setMoveDir(0);
@@ -345,6 +351,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		case VK_RIGHT:
 			if (caught)
 				break;
+			movePacket.type = PLAYER_RIGHT_DOWN;
 			fish.setXY(true);
 			fish.setLR(true);
 			fish.setMoveDir(1);
@@ -352,6 +359,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		case VK_UP:
 			if (caught)
 				break;
+			movePacket.type = PLAYER_UP_DOWN;
 			fish.setXY(false);
 			fish.setUD(false);
 			fish.setMoveDir(2);
@@ -359,71 +367,81 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		case VK_DOWN:
 			if (caught)
 				break;
+			movePacket.type = PLAYER_DOWN_DOWN;
 			fish.setXY(false);
 			fish.setUD(true);
 			fish.setMoveDir(3);
 			break;
 
-		case VK_SPACE:
-			if (foodCount < foodMax)
-			{
-				foodKinds = rand() % 3;
-				randX = rand() % rect.right;
-				randY = rand() % rect.bottom;
-				if (foodKinds == 0)
-				{
-					//해파리
-					foods.push_back(new Food(0, randX, randY, 27, 30, 4));
-				}
-				else if (foodKinds == 1)
-				{
-					//게
-					foods.push_back(new Food(1, randX, randY, 85, 61, 2));
-				}
-				else
-				{
-					//오징어
-					foods.push_back(new Food(2, randX, randY, 47, 72, 10));
-				}
+		//case VK_SPACE:
+		//	if (foodCount < foodMax)
+		//	{
+		//		foodKinds = rand() % 3;
+		//		randX = rand() % rect.right;
+		//		randY = rand() % rect.bottom;
+		//		if (foodKinds == 0)
+		//		{
+		//			//해파리
+		//			foods.push_back(new Food(0, randX, randY, 27, 30, 4));
+		//		}
+		//		else if (foodKinds == 1)
+		//		{
+		//			//게
+		//			foods.push_back(new Food(1, randX, randY, 85, 61, 2));
+		//		}
+		//		else
+		//		{
+		//			//오징어
+		//			foods.push_back(new Food(2, randX, randY, 47, 72, 10));
+		//		}
 
-				++foodCount;
-			}
-			break;
-
-		case VK_NUMPAD1:
-			selectBack = 1;
-			break;
-		case VK_NUMPAD2:
-			selectBack = 2;
-			break;
-		case VK_NUMPAD3:
-			selectBack = 3;
-			break;
-		case VK_NUMPAD4:
-			selectBack = 4;
-			break;
+		//		++foodCount;
+		//	}
+		//	break;
 		}
+		ZeroMemory(send_buf, BUF_SIZE);
+		memcpy(send_buf, &movePacket, sizeof(movePacket));
+
+		retval = send(sock, send_buf, sizeof(movePacket), 0);
+		if (retval == SOCKET_ERROR) err_display("send()");
 		break;
 
 	case WM_KEYUP:
 		if (!isGameStart)
 			break;
+
 		switch (wParam)
 		{
 		case VK_LEFT:
+			movePacket.type = PLAYER_LEFT_UP;
 			fish.setXY(false);
 			fish.setLR(false);
 			fish.setMoveDir(4);
 			break;
 		case VK_RIGHT:
+			movePacket.type = PLAYER_RIGHT_UP;
 			fish.setXY(false);
 			fish.setLR(true);
 			fish.setMoveDir(4);
 			break;
 		case VK_UP:
+			movePacket.type = PLAYER_UP_UP;
+			if (fish.isLR())
+			{
+				fish.setXY(false);
+				fish.setLR(true);
+			}
+			else
+			{
+				fish.setXY(false);
+				fish.setLR(false);
+			}
+			fish.setMoveDir(4);
+			break;
 		case VK_DOWN:
 			if (caught)
 				break;
+			movePacket.type = PLAYER_DOWN_UP;
 			if (fish.isLR())
 			{
 				fish.setXY(false);
@@ -438,12 +456,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			break;
 		}
 
+		ZeroMemory(send_buf, BUF_SIZE);
+		memcpy(send_buf, &movePacket, sizeof(movePacket));
+
+		retval = send(sock, send_buf, sizeof(movePacket), 0);
+		if (retval == SOCKET_ERROR) err_display("send()");
+
+		break;
+
 	case WM_LBUTTONDOWN:
 		mousePoint = { LOWORD(lParam),HIWORD(lParam) };
 		
 		if (PtInRect(&playButtonRect, mousePoint))
 		{
-			isGameStart = true;
+			isReady = true;
 
 			// 윈속 초기화
 			if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
@@ -468,38 +494,38 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				closesocket(sock);
 			else
 				CloseHandle(hThread);
+
+			playButtonRect = { 0,0,0,0 };
 		}
 
 		if (!isGameStart)
 			break;
 
-		if (PtInRect(&foodButton, mousePoint))
-		{
-			if (foodCount < foodMax)
-			{
-				foodKinds = rand() % 3;
-				randX = rand() % rect.right;
-				randY = rand() % rect.bottom;
-				if (foodKinds == 0)
-				{
-					//해파리
-					foods.push_back(new Food(0, randX, randY, 27, 30, 4));
-				}
-				else if (foodKinds == 1)
-				{
-					//게
-					foods.push_back(new Food(1, randX, randY, 85, 61, 2));
-				}
-				else
-				{
-					//오징어
-					foods.push_back(new Food(2, randX, randY, 47, 72, 10));
-				}
-
-
-				++foodCount;
-			}
-		}
+		//if (PtInRect(&foodButton, mousePoint))
+		//{
+		//	if (foodCount < foodMax)
+		//	{
+		//		foodKinds = rand() % 3;
+		//		randX = rand() % rect.right;
+		//		randY = rand() % rect.bottom;
+		//		if (foodKinds == 0)
+		//		{
+		//			//해파리
+		//			foods.push_back(new Food(0, randX, randY, 27, 30, 4));
+		//		}
+		//		else if (foodKinds == 1)
+		//		{
+		//			//게
+		//			foods.push_back(new Food(1, randX, randY, 85, 61, 2));
+		//		}
+		//		else
+		//		{
+		//			//오징어
+		//			foods.push_back(new Food(2, randX, randY, 47, 72, 10));
+		//		}
+		//		++foodCount;
+		//	}
+		//}
 
 		if (PtInRect(&netRect, mousePoint))
 		{
@@ -571,32 +597,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			oldBit1 = (HBITMAP)SelectObject(memDC1, hBitmap);
 
 			//배경화면
-			if (selectBack == 1)
-			{
-				oldBit2 = (HBITMAP)SelectObject(memDC2, back1);
-				StretchBlt(memDC1, 0, 0, rect.right, rect.bottom, memDC2, 0, 0, 256, 192, SRCCOPY);
-			}
-			else if (selectBack == 2)
-			{
-				oldBit2 = (HBITMAP)SelectObject(memDC2, back2);
-				StretchBlt(memDC1, 0, 0, rect.right, rect.bottom, memDC2, 0, 0, 256, 192, SRCCOPY);
-			}
-			else if (selectBack == 3)
-			{
-				oldBit2 = (HBITMAP)SelectObject(memDC2, back3);
-				StretchBlt(memDC1, 0, 0, rect.right, rect.bottom, memDC2, 0, 0, 256, 192, SRCCOPY);
-			}
-			else
-			{
-				oldBit2 = (HBITMAP)SelectObject(memDC2, back4);
-				StretchBlt(memDC1, 0, 0, rect.right, rect.bottom, memDC2, 0, 0, 256, 192, SRCCOPY);
-			}
-
-			oldBit2 = (HBITMAP)SelectObject(memDC2, floor);
-			TransparentBlt(memDC1, 0, rect.bottom - 80, rect.right, 84, memDC2, 0, 0, rect.right, 84, RGB(255, 1, 1));
+			oldBit2 = (HBITMAP)SelectObject(memDC2, back1);
+			StretchBlt(memDC1, 0, 0, rect.right, rect.bottom, memDC2, 0, 0, 256, 192, SRCCOPY);
 
 			//물고기
-
 			if (!caught)
 			{
 				if (!eventOut || angryCount > 30) { // 평상시
@@ -630,7 +634,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			//먹이
 			for (auto* f : foods)
 			{
-				//Ellipse(memDC1, f->getX(), f->getY(), f->getX() + 10, f->getY() + 10);
 				if (f->getFishKinds() == 0)
 				{
 					oldBit2 = (HBITMAP)SelectObject(memDC2, jelly);
@@ -657,7 +660,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			{
 			case 0:
 				oldBit2 = (HBITMAP)SelectObject(memDC2, net);
-				//Rectangle(memDC1, netRect.left, netRect.top, netRect.right, netRect.bottom);
 				if (netDir == 0)
 					TransparentBlt(memDC1, netRect.left, netRect.top, 200, 400, memDC2, 1364, 0, 1364, 2438, RGB(255, 1, 1));
 				else
@@ -667,7 +669,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			case 1:
 				oldBit2 = (HBITMAP)SelectObject(memDC2, hook);
 				TransparentBlt(memDC1, hookRect.left, hookRect.top, 100, 300, memDC2, 0, 0, 536, 1500, RGB(255, 1, 1));
-				//Rectangle(memDC1, hookRect.left, hookRect.top, hookRect.right, hookRect.bottom);
 				break;
 			case 2:
 				oldBit2 = (HBITMAP)SelectObject(memDC2, shark);
@@ -680,7 +681,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				if (sharkCount > 2)
 					sharkCount = 0;
 
-				//Rectangle(memDC1, sharkRect.left, sharkRect.top, sharkRect.right, sharkRect.bottom);
 				break;
 			case 3:
 				break;
@@ -701,18 +701,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				}
 			}
 
-			if (!isGameStart)
+			if (!isReady && !isGameStart)
 			{
 				oldBit2 = (HBITMAP)SelectObject(memDC2, playButton);
 				TransparentBlt(memDC1, playButtonRect.left, playButtonRect.top, 200, 100, memDC2, 0, 0, 1271, 401, RGB(255, 255, 255));
-				//Rectangle(memDC1, playButtonRect.left, playButtonRect.top, playButtonRect.right, playButtonRect.bottom);
-
-				isGameStart = false;
-				isLoading = true;
-
-			
 			}
-			else if (isLoading)
+			else if (isReady)
 			{
 				//로딩 이미지
 				oldBit2 = (HBITMAP)SelectObject(memDC2, loading);
@@ -720,26 +714,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				++loadingCount;
 				if (loadingCount > 7)
 					loadingCount = 0;
-
-				//패킷 확인
-				/*retval = send(sock, (char*)&fileNameSize, sizeof(int), 0);
-				if (retval == SOCKET_ERROR) {
-					err_display("send()");
-				}*/
-				//SetTimer(hWnd, 2, 70, NULL);	// 먹이 낙하
-				//SetTimer(hWnd, 3, 70, NULL);	// 물고기 이동 / 먹이 섭취
-				//SetTimer(hWnd, 4, 20000, NULL);	// 이벤트 생성 20초
-				//SetTimer(hWnd, 5, 70, NULL);	// 이벤트 진행
-
 			}
-			else
-			{
-				oldBit2 = (HBITMAP)SelectObject(memDC2, foodButtonImage);
-				//Rectangle(memDC1, foodButton.left, foodButton.top, foodButton.right, foodButton.bottom);
-				TransparentBlt(memDC1, foodButton.left, foodButton.top, 100, 100, memDC2, 0, 0, 836, 834, RGB(255, 1, 1));
-			}
-
-
 
 			SelectObject(memDC2, oldBit2);
 			DeleteObject(memDC2);
@@ -863,7 +838,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			// 이벤트 생성
 		case 4:
 			eventNum = rand() % 3;
-			//eventNum = 0;
 			eventClick = 0;
 			eventOut = false;
 			// 화난 얼굴
@@ -987,12 +961,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					}
 				}
 				break;
-
-			case 3:
-				break;
-
-			default:
-				break;
 			}
 			break;
 		case 7:
@@ -1036,16 +1004,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			foodExp = 10;
 			break;
 		case ID_BACKGROUND_BACK1:
-			selectBack = 1;
-			break;
 		case ID_BACKGROUND_BACK2:
-			selectBack = 2;
-			break;
 		case ID_BACKGROUND_BACK3:
-			selectBack = 3;
-			break;
 		case ID_BACKGROUND_BACK4:
-			selectBack = 4;
+			selectBack = 1;
 			break;
 		}
 		break;
