@@ -4,6 +4,7 @@
 class Fish
 {
 	RECT rect;
+	short x, y;
 	int width, height;
 	int age;
 	int exp;
@@ -16,7 +17,7 @@ class Fish
 	BOOL goUD;
 
 public:
-	Fish(int x, int y);
+	Fish(int posX, int posY);
 
 	RECT getRect();
 	void setRect(RECT r);
@@ -49,4 +50,11 @@ public:
 	void setXY(bool xy);
 	void setLR(bool lr);
 	void setUD(bool ud);
+
+	void Move(short x, short y);
+
+	void SetX(short posX) { x = posX; }
+	void SetY(short posY) { y = posY; }
+	short GetX() const { return x; };
+	short GetY() const { return y; };
 };

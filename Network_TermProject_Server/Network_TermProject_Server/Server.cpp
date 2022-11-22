@@ -17,6 +17,7 @@ private:
 public:
 	bool is_ready;
 	int id;			// 클라이언트 구분용 id
+	int speed;
 	SOCKET sock;
 	 
 public:
@@ -25,6 +26,7 @@ public:
 		y = 0;
 		size = 0;
 		id = -1;
+		speed = 5;
 		is_ready = false;
 	} 
 	~client() {}; 
@@ -86,6 +88,8 @@ void overload_packet_process(char* buf, int packet_size, int& remain_packet)
 	}
 }
 
+
+
 // 클라이언트 별 쓰레드 생성
 DWORD WINAPI RecvThread(LPVOID arg)
 {
@@ -117,6 +121,49 @@ DWORD WINAPI RecvThread(LPVOID arg)
 			// 버퍼 처리 
 			switch (buf[0]) {
 			case CS_PLAYER_MOVE: {
+				CS_MOVE_PACKET* move_packet = reinterpret_cast<CS_MOVE_PACKET*>(buf);
+
+				client& cl = clients[this_id];
+
+				short x = cl.GetX();
+				short y = cl.GetY();
+
+				// 방향에 따라 x, y 값이 속도만큼 변함
+				switch (move_packet->dir) {
+				case LEFT_DOWN:
+					x -= cl.speed;
+					break;
+				case RIGHT_DOWN:
+					x += cl.speed;
+					break;
+				case UP_DOWN:
+					y -= cl.speed;
+					break;
+				case DOWN_DOWN:
+					y += cl.speed;
+					break;
+				}
+
+				// 충돌처리 부분 필요
+
+				// 서버의 클라이언트 정보에 이동한 좌표값 최신화
+				cl.SetX(x);
+				cl.SetY(y);
+
+				std::cout << "x : " <<  x << ", y : " << y << ",  speed : " << cl.speed << std::endl;
+
+				SC_MOVE_PACKET packet;
+				packet.id = this_id;
+				packet.type = SC_PLAYER_MOVE;
+				packet.pos.x = x;
+				packet.pos.y = y;
+
+				// 내 이동 정보를 모든 클라이언트에 전송
+				for (auto& client : clients) {
+					if (client.id == -1)
+						continue;
+					client.send_packet(&packet, sizeof(packet));
+				}
 
 				overload_packet_process(buf, sizeof(CS_MOVE_PACKET), remain_packet);
 				break;
@@ -176,6 +223,20 @@ DWORD WINAPI RecvThread(LPVOID arg)
 				if (ready_count == MAX_USER) {
 					SC_GAME_START_PACKET packet;
 					packet.type = SC_GAME_START;
+					
+					short x, y;
+
+					for (int i = 0; i < MAX_USER; ++i) {
+						x = rand() % SPAWN_WIDTH + 200;
+						y = rand() % SPAWN_HEIGHT + 200;
+						clients[i].SetX(x);
+						clients[i].SetY(y);
+						packet.pos[i].x = x;
+						packet.pos[i].y = y;
+
+						std::cout << i << " 플레이어의 좌표 : " << x << ", " << y << std::endl;
+					}
+
 
 					ZeroMemory(send_buf, sizeof(BUF_SIZE));
 					memcpy(send_buf, &packet, sizeof(packet));

@@ -4,6 +4,9 @@ constexpr int BUF_SIZE = 1024;
 constexpr int MAX_USER = 3;
 constexpr int MAX_OBJECT = 100;
 
+constexpr int SPAWN_WIDTH = 800;
+constexpr int SPAWN_HEIGHT = 600;
+
 // packet의 type 구분
 enum PacketType {
 	SC_PLAYER_MOVE,			// 서버 -> 클라		이동
@@ -36,14 +39,14 @@ enum ObjectType {
 
 // 플레이어의 이동키 입력 구분
 enum PlayerMove {
-	PLAYER_LEFT_DOWN,
-	PLAYER_RIGHT_DOWN,
-	PLAYER_UP_DOWN,
-	PLAYER_DOWN_DOWN,
-	PLAYER_LEFT_UP,
-	PLAYER_RIGHT_UP,
-	PLAYER_UP_UP,
-	PLAYER_DOWN_UP
+	LEFT_DOWN,
+	RIGHT_DOWN,
+	UP_DOWN,
+	DOWN_DOWN,
+	LEFT_UP,
+	RIGHT_UP,
+	UP_UP,
+	DOWN_UP
 };
 
 
@@ -101,6 +104,7 @@ struct SC_GAME_START_PACKET {
 	char type;
 	// 게임 시작 시 플레이어들의 정보를 넘길 필요가 있음
 	// -> 게임 초기화 작업
+	position pos[3];
 };
 
 struct SC_COLLISION_PACKET {

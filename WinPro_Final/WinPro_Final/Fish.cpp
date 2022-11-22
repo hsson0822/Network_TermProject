@@ -1,19 +1,23 @@
 #include "Fish.h"
 
-Fish::Fish(int x, int y)
+Fish::Fish(int posX, int posY)
 {
 	width = 120;
 	height = 140;
 	age = 0;
 	exp = 0;
 	maxExp = 20;
-	rect = { x,y,x + width, y + height };
+	rect = { posX,posY,posX + width, posY + height };
 	moveDir = 4;
+	x = 0;
+	y = 0;
 }
 
 
 RECT Fish::getRect() { return rect; }
 void Fish::setRect(RECT r) { rect = r; }
+
+
 
 int Fish::getAge() { return age; }
 void Fish::addAge()
@@ -52,3 +56,10 @@ BOOL Fish::isUD() { return goUD; }
 void Fish::setXY(bool xy) { goXY = xy; }
 void Fish::setLR(bool lr) { goLR = lr; }
 void Fish::setUD(bool ud) { goUD = ud; }
+
+void Fish::Move(short posX, short posY)
+{
+	x = posX;
+	y = posY;
+	setRect(RECT{ x, y, x + width, y + height });
+}

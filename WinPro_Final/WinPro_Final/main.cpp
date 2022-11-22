@@ -42,6 +42,8 @@ int id;
 BOOL isReady = false;
 BOOL isGameStart = false;
 
+Fish fish(0, 0);
+
 char* SERVERIP = (char*)"127.0.0.1";
 
 // 오류 검사용 함수
@@ -113,7 +115,6 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				// 다른 플레이어 추가
 				SC_ADD_PLAYER_PACKET* packet = reinterpret_cast<SC_ADD_PLAYER_PACKET*>(buf);
 
-				cout << "add player " << packet->id << endl;
 				// fish 배열에 다른 플레이어들을 저장
 
 				overload_packet_process(buf, sizeof(SC_ADD_PLAYER_PACKET), remain_packet);
@@ -146,7 +147,15 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 			}
 
 			case SC_GAME_START: {
-				cout << "game start " << endl;
+				SC_GAME_START_PACKET* packet = reinterpret_cast<SC_GAME_START_PACKET*>(buf);
+
+				for (int i = 0; i < MAX_USER; ++i) {
+					if (id == i) {
+						fish.SetX(packet->pos[i].x);
+						fish.SetY(packet->pos[i].y);
+					}
+				}
+
 				isReady = false;
 				isGameStart = true;
 				overload_packet_process(buf, sizeof(SC_GAME_START_PACKET), remain_packet);
@@ -156,16 +165,24 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				SetTimer(hWnd, 5, 70, NULL);	// 이벤트 진행
 				break;
 			}
+			
+			case SC_PLAYER_MOVE: {
+				SC_MOVE_PACKET* packet = reinterpret_cast<SC_MOVE_PACKET*>(buf);
 
-			case CS_LBUTTONCLICK: {
+				// -----------------------------
+				// id로 나 or 플레이어 이동 처리
+				// packet->id ~~
+				// --------------------------
 
+				if (packet->id == id) {
+					fish.Move(packet->pos.x, packet->pos.y);
+					cout << fish.GetX() << ", " << fish.GetY() << endl;
+				}
+
+				overload_packet_process(buf, sizeof(SC_MOVE_PACKET), remain_packet);
 				break;
 			}
-
-			case CS_PLAYER_READY: {
-
-				break;
-			}
+	
 
 			}
 			// 패킷 별 처리
@@ -237,7 +254,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	static int selectBack;
 
-	static Fish fish(0, 0);
 
 	static vector<Food*> foods;
 	static int foodKinds;
@@ -276,9 +292,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	static int foodExp;
 	static BOOL autoMode;
 
-	CS_MOVE_PACKET movePacket;
-
-	char send_buf[BUF_SIZE];
 
 	switch (uMsg)
 	{
@@ -316,7 +329,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		foodMax = 20;
 
 		playButtonRect = { rect.right / 2 - 100 , rect.bottom / 2 + 200 , rect.right / 2 + 100, rect.bottom / 2 + 300 };
-		
+
 		loadingRect = { rect.right / 2 - 50 , rect.bottom / 2 + 200 , rect.right / 2 + 100, rect.bottom / 2 + 300 };
 		loadingCount = 0;
 
@@ -335,97 +348,111 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_KEYDOWN:
+	{
 		if (!isGameStart)
 			break;
 
+		char dir = -1;
 		switch (wParam)
 		{
-		case VK_LEFT:
 			if (caught)
 				break;
-			movePacket.type = PLAYER_LEFT_DOWN;
+		case VK_LEFT:
+			dir = LEFT_DOWN;
 			fish.setXY(true);
 			fish.setLR(false);
 			fish.setMoveDir(0);
 			break;
 		case VK_RIGHT:
-			if (caught)
-				break;
-			movePacket.type = PLAYER_RIGHT_DOWN;
+			dir = RIGHT_DOWN;
 			fish.setXY(true);
 			fish.setLR(true);
 			fish.setMoveDir(1);
 			break;
 		case VK_UP:
-			if (caught)
-				break;
-			movePacket.type = PLAYER_UP_DOWN;
+			dir = UP_DOWN;
 			fish.setXY(false);
 			fish.setUD(false);
 			fish.setMoveDir(2);
 			break;
 		case VK_DOWN:
-			if (caught)
-				break;
-			movePacket.type = PLAYER_DOWN_DOWN;
+			dir = DOWN_DOWN;
 			fish.setXY(false);
 			fish.setUD(true);
 			fish.setMoveDir(3);
 			break;
 
-		//case VK_SPACE:
-		//	if (foodCount < foodMax)
-		//	{
-		//		foodKinds = rand() % 3;
-		//		randX = rand() % rect.right;
-		//		randY = rand() % rect.bottom;
-		//		if (foodKinds == 0)
-		//		{
-		//			//해파리
-		//			foods.push_back(new Food(0, randX, randY, 27, 30, 4));
-		//		}
-		//		else if (foodKinds == 1)
-		//		{
-		//			//게
-		//			foods.push_back(new Food(1, randX, randY, 85, 61, 2));
-		//		}
-		//		else
-		//		{
-		//			//오징어
-		//			foods.push_back(new Food(2, randX, randY, 47, 72, 10));
-		//		}
+			//case VK_SPACE:
+			//	if (foodCount < foodMax)
+			//	{
+			//		foodKinds = rand() % 3;
+			//		randX = rand() % rect.right;
+			//		randY = rand() % rect.bottom;
+			//		if (foodKinds == 0)
+			//		{
+			//			//해파리
+			//			foods.push_back(new Food(0, randX, randY, 27, 30, 4));
+			//		}
+			//		else if (foodKinds == 1)
+			//		{
+			//			//게
+			//			foods.push_back(new Food(1, randX, randY, 85, 61, 2));
+			//		}
+			//		else
+			//		{
+			//			//오징어
+			//			foods.push_back(new Food(2, randX, randY, 47, 72, 10));
+			//		}
 
-		//		++foodCount;
-		//	}
-		//	break;
+			//		++foodCount;
+			//	}
+			//	break;
 		}
-		ZeroMemory(send_buf, BUF_SIZE);
-		memcpy(send_buf, &movePacket, sizeof(movePacket));
+		
+		
+		// 이동키를 눌렀다면
+		if (dir != -1) {
+			CS_MOVE_PACKET packet;
+			packet.type = CS_PLAYER_MOVE;
+			packet.dir = dir;
 
-		retval = send(sock, send_buf, sizeof(movePacket), 0);
-		if (retval == SOCKET_ERROR) err_display("send()");
+			char send_buf[BUF_SIZE];
+			ZeroMemory(send_buf, BUF_SIZE);
+			memcpy(send_buf, &packet, sizeof(packet));
+
+
+			retval = send(sock, send_buf, sizeof(packet), 0);
+			if (retval == SOCKET_ERROR) err_display("move key down send()");
+		}
+
+
 		break;
+	}
 
-	case WM_KEYUP:
+	case WM_KEYUP: {
 		if (!isGameStart)
 			break;
 
+		char dir = -1;
+
 		switch (wParam)
 		{
+			if (caught)
+				break;
 		case VK_LEFT:
-			movePacket.type = PLAYER_LEFT_UP;
+			dir = LEFT_UP;
 			fish.setXY(false);
 			fish.setLR(false);
 			fish.setMoveDir(4);
 			break;
 		case VK_RIGHT:
-			movePacket.type = PLAYER_RIGHT_UP;
+			dir = RIGHT_UP;
 			fish.setXY(false);
 			fish.setLR(true);
 			fish.setMoveDir(4);
 			break;
 		case VK_UP:
-			movePacket.type = PLAYER_UP_UP;
+			dir = UP_UP;
 			if (fish.isLR())
 			{
 				fish.setXY(false);
@@ -439,9 +466,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			fish.setMoveDir(4);
 			break;
 		case VK_DOWN:
-			if (caught)
-				break;
-			movePacket.type = PLAYER_DOWN_UP;
+			dir = DOWN_UP;
 			if (fish.isLR())
 			{
 				fish.setXY(false);
@@ -456,13 +481,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			break;
 		}
 
-		ZeroMemory(send_buf, BUF_SIZE);
-		memcpy(send_buf, &movePacket, sizeof(movePacket));
+		/*if (dir != -1) {
+			CS_MOVE_PACKET packet;
+			packet.type = CS_PLAYER_MOVE;
+			packet.dir = dir;
 
-		retval = send(sock, send_buf, sizeof(movePacket), 0);
-		if (retval == SOCKET_ERROR) err_display("send()");
+			char send_buf[BUF_SIZE];
+			ZeroMemory(send_buf, BUF_SIZE);
+			memcpy(send_buf, &packet, sizeof(packet));
 
-		break;
+			retval = send(sock, send_buf, sizeof(packet), 0);
+			if (retval == SOCKET_ERROR) err_display("move key up send()");
+		}*/
+
+		break; 
+	}
 
 	case WM_LBUTTONDOWN:
 		mousePoint = { LOWORD(lParam),HIWORD(lParam) };
@@ -745,34 +778,34 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		case 3:
 			if (!caught)
 			{
-				if (fish.getMoveDir() == 0)
-				{
-					//왼쪽
-					fish.setRect(RECT{ fish.getRect().left - 20,fish.getRect().top, fish.getRect().right - 20, fish.getRect().bottom });
-					if (fish.getRect().left < rect.left)
-						fish.setRect(RECT{ fish.getRect().left + 20,fish.getRect().top, fish.getRect().right + 20, fish.getRect().bottom });
-				}
-				else if (fish.getMoveDir() == 1)
-				{
-					//오른쪽
-					fish.setRect(RECT{ fish.getRect().left + 20,fish.getRect().top, fish.getRect().right + 20, fish.getRect().bottom });
-					if (fish.getRect().right > rect.right)
-						fish.setRect(RECT{ fish.getRect().left - 20,fish.getRect().top, fish.getRect().right - 20, fish.getRect().bottom });
-				}
-				else if (fish.getMoveDir() == 2)
-				{
-					//위
-					fish.setRect(RECT{ fish.getRect().left,fish.getRect().top - 20, fish.getRect().right, fish.getRect().bottom - 20 });
-					if (fish.getRect().top < rect.top)
-						fish.setRect(RECT{ fish.getRect().left,fish.getRect().top + 20, fish.getRect().right, fish.getRect().bottom + 20 });
-				}
-				else if (fish.getMoveDir() == 3)
-				{
-					//아래
-					fish.setRect(RECT{ fish.getRect().left,fish.getRect().top + 20, fish.getRect().right, fish.getRect().bottom + 20 });
-					if (fish.getRect().bottom > rect.bottom - 80)
-						fish.setRect(RECT{ fish.getRect().left,fish.getRect().top - 20, fish.getRect().right, fish.getRect().bottom - 20 });
-				}
+				//if (fish.getMoveDir() == 0)
+				//{
+				//	//왼쪽
+				//	fish.setRect(RECT{ fish.getRect().left - 20,fish.getRect().top, fish.getRect().right - 20, fish.getRect().bottom });
+				//	if (fish.getRect().left < rect.left)
+				//		fish.setRect(RECT{ fish.getRect().left + 20,fish.getRect().top, fish.getRect().right + 20, fish.getRect().bottom });
+				//}
+				//else if (fish.getMoveDir() == 1)
+				//{
+				//	//오른쪽
+				//	fish.setRect(RECT{ fish.getRect().left + 20,fish.getRect().top, fish.getRect().right + 20, fish.getRect().bottom });
+				//	if (fish.getRect().right > rect.right)
+				//		fish.setRect(RECT{ fish.getRect().left - 20,fish.getRect().top, fish.getRect().right - 20, fish.getRect().bottom });
+				//}
+				//else if (fish.getMoveDir() == 2)
+				//{
+				//	//위
+				//	fish.setRect(RECT{ fish.getRect().left,fish.getRect().top - 20, fish.getRect().right, fish.getRect().bottom - 20 });
+				//	if (fish.getRect().top < rect.top)
+				//		fish.setRect(RECT{ fish.getRect().left,fish.getRect().top + 20, fish.getRect().right, fish.getRect().bottom + 20 });
+				//}
+				//else if (fish.getMoveDir() == 3)
+				//{
+				//	//아래
+				//	fish.setRect(RECT{ fish.getRect().left,fish.getRect().top + 20, fish.getRect().right, fish.getRect().bottom + 20 });
+				//	if (fish.getRect().bottom > rect.bottom - 80)
+				//		fish.setRect(RECT{ fish.getRect().left,fish.getRect().top - 20, fish.getRect().right, fish.getRect().bottom - 20 });
+				//}
 			}
 			else
 			{
