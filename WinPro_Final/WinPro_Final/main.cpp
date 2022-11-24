@@ -44,6 +44,7 @@ BOOL isGameStart = false;
 long start_x{ -300 };
 
 Fish fish(0, 0);
+int fishSpeed = 5;
 Fish players[MAX_USER];
 // players 는 다른 플레이어
 // 현재는 Fish class를 사용하지만 불필요한 멤버 함수, 변수를 제외한 클래스로 배열을 만들어야 함
@@ -180,9 +181,10 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				SetTimer(hWnd, 3, 70, NULL);	// 물고기 이동 / 먹이 섭취
 				SetTimer(hWnd, 4, 20000, NULL);	// 이벤트 생성 20초
 				SetTimer(hWnd, 5, 70, NULL);	// 이벤트 진행
+
 				break;
 			}
-			
+
 			case SC_PLAYER_MOVE: {
 				SC_MOVE_PACKET* packet = reinterpret_cast<SC_MOVE_PACKET*>(buf);
 
@@ -203,7 +205,7 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				overload_packet_process(buf, sizeof(SC_MOVE_PACKET), remain_packet);
 				break;
 			}
-	
+
 
 			}
 			// 패킷 별 처리
@@ -343,7 +345,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		autoMode = FALSE;
 
 		selectBack = 1;
-		
+
 		SetFishRect(fish, rect.right / 2 + start_x, rect.bottom / 2);
 		start_x += 200;
 		fish.SetIsActive(true);
@@ -431,8 +433,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			//	}
 			//	break;
 		}
-		
-		
+
+
 		// 이동키를 눌렀다면
 		if (dir != -1) {
 			CS_MOVE_PACKET packet;
@@ -517,12 +519,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			if (retval == SOCKET_ERROR) err_display("move key up send()");
 		}*/
 
-		break; 
+		break;
 	}
 
 	case WM_LBUTTONDOWN:
 		mousePoint = { LOWORD(lParam),HIWORD(lParam) };
-		
+
 		if (PtInRect(&playButtonRect, mousePoint))
 		{
 			isReady = true;
@@ -663,13 +665,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					oldBit2 = (HBITMAP)SelectObject(memDC2, normalImage);
 					fish.Draw(memDC1, memDC2);
 					for (auto& player : players)
-							player.Draw(memDC1, memDC2);
+						player.Draw(memDC1, memDC2);
 				}
 				else if (eventOut) { // 이벤트 5회 클릭
 					oldBit2 = (HBITMAP)SelectObject(memDC2, angryImage);
 					fish.Draw(memDC1, memDC2);
 					for (auto& player : players)
-							player.Draw(memDC1, memDC2);
+						player.Draw(memDC1, memDC2);
 					angryCount++;
 				}
 			}
@@ -678,9 +680,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				oldBit2 = (HBITMAP)SelectObject(memDC2, cryImage);
 				fish.Draw(memDC1, memDC2);
 				for (auto& player : players)
-						player.Draw(memDC1, memDC2);
+					player.Draw(memDC1, memDC2);
 			}
+			for (auto& player : players)
+				player.addMoveCount();
 			fish.addMoveCount();
+
+			for (auto& player : players)
+			{
+				if (player.getMoveCount() > 3)
+					player.resetMoveCount();
+			}
+
 			if (fish.getMoveCount() > 3)
 				fish.resetMoveCount();
 
@@ -798,34 +809,34 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		case 3:
 			if (!caught)
 			{
-				//if (fish.getMoveDir() == 0)
-				//{
-				//	//왼쪽
-				//	fish.setRect(RECT{ fish.getRect().left - 20,fish.getRect().top, fish.getRect().right - 20, fish.getRect().bottom });
-				//	if (fish.getRect().left < rect.left)
-				//		fish.setRect(RECT{ fish.getRect().left + 20,fish.getRect().top, fish.getRect().right + 20, fish.getRect().bottom });
-				//}
-				//else if (fish.getMoveDir() == 1)
-				//{
-				//	//오른쪽
-				//	fish.setRect(RECT{ fish.getRect().left + 20,fish.getRect().top, fish.getRect().right + 20, fish.getRect().bottom });
-				//	if (fish.getRect().right > rect.right)
-				//		fish.setRect(RECT{ fish.getRect().left - 20,fish.getRect().top, fish.getRect().right - 20, fish.getRect().bottom });
-				//}
-				//else if (fish.getMoveDir() == 2)
-				//{
-				//	//위
-				//	fish.setRect(RECT{ fish.getRect().left,fish.getRect().top - 20, fish.getRect().right, fish.getRect().bottom - 20 });
-				//	if (fish.getRect().top < rect.top)
-				//		fish.setRect(RECT{ fish.getRect().left,fish.getRect().top + 20, fish.getRect().right, fish.getRect().bottom + 20 });
-				//}
-				//else if (fish.getMoveDir() == 3)
-				//{
-				//	//아래
-				//	fish.setRect(RECT{ fish.getRect().left,fish.getRect().top + 20, fish.getRect().right, fish.getRect().bottom + 20 });
-				//	if (fish.getRect().bottom > rect.bottom - 80)
-				//		fish.setRect(RECT{ fish.getRect().left,fish.getRect().top - 20, fish.getRect().right, fish.getRect().bottom - 20 });
-				//}
+				if (fish.getMoveDir() == 0)
+				{
+					//왼쪽
+					fish.setRect(RECT{ fish.getRect().left - fishSpeed,fish.getRect().top, fish.getRect().right - fishSpeed, fish.getRect().bottom });
+					if (fish.getRect().left < rect.left)
+						fish.setRect(RECT{ fish.getRect().left + fishSpeed,fish.getRect().top, fish.getRect().right + fishSpeed, fish.getRect().bottom });
+				}
+				else if (fish.getMoveDir() == 1)
+				{
+					//오른쪽
+					fish.setRect(RECT{ fish.getRect().left + fishSpeed,fish.getRect().top, fish.getRect().right + fishSpeed, fish.getRect().bottom });
+					if (fish.getRect().right > rect.right)
+						fish.setRect(RECT{ fish.getRect().left - fishSpeed,fish.getRect().top, fish.getRect().right - fishSpeed, fish.getRect().bottom });
+				}
+				else if (fish.getMoveDir() == 2)
+				{
+					//위
+					fish.setRect(RECT{ fish.getRect().left,fish.getRect().top - fishSpeed, fish.getRect().right, fish.getRect().bottom - fishSpeed });
+					if (fish.getRect().top < rect.top)
+						fish.setRect(RECT{ fish.getRect().left,fish.getRect().top + fishSpeed, fish.getRect().right, fish.getRect().bottom + fishSpeed });
+				}
+				else if (fish.getMoveDir() == 3)
+				{
+					//아래
+					fish.setRect(RECT{ fish.getRect().left,fish.getRect().top + fishSpeed, fish.getRect().right, fish.getRect().bottom + fishSpeed });
+					if (fish.getRect().bottom > rect.bottom - 80)
+						fish.setRect(RECT{ fish.getRect().left,fish.getRect().top - fishSpeed, fish.getRect().right, fish.getRect().bottom - fishSpeed });
+				}
 			}
 			else
 			{

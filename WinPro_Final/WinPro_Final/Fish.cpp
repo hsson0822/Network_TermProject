@@ -66,6 +66,11 @@ void Fish::setUD(bool ud) { goUD = ud; }
 
 void Fish::Move(short posX, short posY)
 {
+	if (posX > x)
+		goLR = true;
+	else if(posX < x)
+		goLR = false;
+
 	x = posX;
 	y = posY;
 	setRect(RECT{ x, y, x + width, y + height });
