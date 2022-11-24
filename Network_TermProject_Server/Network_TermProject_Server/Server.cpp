@@ -88,7 +88,12 @@ void overload_packet_process(char* buf, int packet_size, int& remain_packet)
 	}
 }
 
+DWORD WINAPI CalculateThread(LPVOID arg)
+{
+	
 
+	return 0;
+}
 
 // 클라이언트 별 쓰레드 생성
 DWORD WINAPI RecvThread(LPVOID arg)
@@ -224,6 +229,11 @@ DWORD WINAPI RecvThread(LPVOID arg)
 					SC_GAME_START_PACKET packet;
 					packet.type = SC_GAME_START;
 					
+					// 계산스레드 생성
+					HANDLE hThread;
+					hThread = CreateThread(nullptr, 0, CalculateThread,
+						reinterpret_cast<LPVOID>(client_socket), 0, nullptr);
+					
 					short x, y;
 
 					for (int i = 0; i < MAX_USER; ++i) {
@@ -236,7 +246,6 @@ DWORD WINAPI RecvThread(LPVOID arg)
 
 						std::cout << i << " 플레이어의 좌표 : " << x << ", " << y << std::endl;
 					}
-
 					for (auto& client : clients)
 						client.send_packet(&packet, sizeof(SC_GAME_START_PACKET));
 
@@ -325,6 +334,7 @@ int main(int argc, char* argv[])
 		else
 			CloseHandle(hThread);
 	}
+
 
 	DeleteCriticalSection(&id_cs);
 	DeleteCriticalSection(&cs);
