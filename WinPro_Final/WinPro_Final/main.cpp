@@ -41,8 +41,14 @@ int retval;
 int id;
 BOOL isReady = false;
 BOOL isGameStart = false;
+long start_x{ -300 };
 
 Fish fish(0, 0);
+Fish players[MAX_USER];
+// players 는 다른 플레이어
+// 현재는 Fish class를 사용하지만 불필요한 멤버 함수, 변수를 제외한 클래스로 배열을 만들어야 함
+
+void SetFishRect(Fish& fish, const LONG x, const LONG y);
 
 char* SERVERIP = (char*)"127.0.0.1";
 
@@ -104,7 +110,6 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 			return 0;
 		}
 
-		cout << "받은 패킷 크기" << retval << endl;
 		remain_packet = retval;
 		// 남아있는 패킷 처리
 		while (remain_packet > 0) {
@@ -113,9 +118,13 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 			switch (buf[0]) {
 			case SC_ADD_PLAYER: {
 				// 다른 플레이어 추가
+				// 다른 플레이어 active 로 변경
 				SC_ADD_PLAYER_PACKET* packet = reinterpret_cast<SC_ADD_PLAYER_PACKET*>(buf);
+				int other_id = packet->id;
 
-				// fish 배열에 다른 플레이어들을 저장
+				SetFishRect(players[other_id], rect.right / 2 + start_x, rect.bottom / 2);
+				start_x += 200;
+				players[other_id].SetIsActive(true);
 
 				overload_packet_process(buf, sizeof(SC_ADD_PLAYER_PACKET), remain_packet);
 				break;
@@ -153,6 +162,14 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 					if (id == i) {
 						fish.SetX(packet->pos[i].x);
 						fish.SetY(packet->pos[i].y);
+						fish.Move(packet->pos[i].x, packet->pos[i].y);
+						printf("%d 의 좌표  x : %d , y : %d\n", i, packet->pos[i].x, packet->pos[i].y);
+					}
+					else {
+						players[i].SetX(packet->pos[i].x);
+						players[i].SetY(packet->pos[i].y);
+						players[i].Move(packet->pos[i].x, packet->pos[i].y);
+						printf("%d 의 좌표  x : %d , y : %d\n", i, packet->pos[i].x, packet->pos[i].y);
 					}
 				}
 
@@ -173,11 +190,15 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				// id로 나 or 플레이어 이동 처리
 				// packet->id ~~
 				// --------------------------
+				int other_id = packet->id;
 
-				if (packet->id == id) {
+				if (other_id == id) {
 					fish.Move(packet->pos.x, packet->pos.y);
-					cout << fish.GetX() << ", " << fish.GetY() << endl;
 				}
+				else {
+					players[other_id].Move(packet->pos.x, packet->pos.y);
+				}
+				printf("%d 번 플레이어 x : %d, y : %d\n", other_id, packet->pos.x, packet->pos.y);
 
 				overload_packet_process(buf, sizeof(SC_MOVE_PACKET), remain_packet);
 				break;
@@ -322,8 +343,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		autoMode = FALSE;
 
 		selectBack = 1;
-
-		fish.setRect(RECT{ rect.right / 2 , rect.bottom / 2,(rect.right / 2) + fish.getWidth(),(rect.bottom / 2) + fish.getHeight() });
+		
+		SetFishRect(fish, rect.right / 2 + start_x, rect.bottom / 2);
+		start_x += 200;
+		fish.SetIsActive(true);
 		foodButton = { rect.right - 100,rect.bottom - 100,rect.right,rect.bottom };
 		foodCount = 0;
 		foodMax = 20;
@@ -638,27 +661,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			{
 				if (!eventOut || angryCount > 30) { // 평상시
 					oldBit2 = (HBITMAP)SelectObject(memDC2, normalImage);
-					if (fish.isLR())
-						TransparentBlt(memDC1, fish.getRect().left, fish.getRect().top, fish.getWidth(), fish.getHeight(), memDC2, 124 * fish.getMoveCount(), 159, 124, 159, RGB(255, 1, 1));
-					else
-						TransparentBlt(memDC1, fish.getRect().left, fish.getRect().top, fish.getWidth(), fish.getHeight(), memDC2, 124 * fish.getMoveCount(), 0, 124, 159, RGB(255, 1, 1));
+					fish.Draw(memDC1, memDC2);
+					for (auto& player : players)
+							player.Draw(memDC1, memDC2);
 				}
 				else if (eventOut) { // 이벤트 5회 클릭
 					oldBit2 = (HBITMAP)SelectObject(memDC2, angryImage);
-					if (fish.isLR())
-						TransparentBlt(memDC1, fish.getRect().left, fish.getRect().top, fish.getWidth(), fish.getHeight(), memDC2, 124 * fish.getMoveCount(), 159, 124, 159, RGB(255, 1, 1));
-					else
-						TransparentBlt(memDC1, fish.getRect().left, fish.getRect().top, fish.getWidth(), fish.getHeight(), memDC2, 124 * fish.getMoveCount(), 0, 124, 159, RGB(255, 1, 1));
+					fish.Draw(memDC1, memDC2);
+					for (auto& player : players)
+							player.Draw(memDC1, memDC2);
 					angryCount++;
 				}
 			}
 			else
 			{
 				oldBit2 = (HBITMAP)SelectObject(memDC2, cryImage);
-				if (fish.isLR())
-					TransparentBlt(memDC1, fish.getRect().left, fish.getRect().top, fish.getWidth(), fish.getHeight(), memDC2, 124 * fish.getMoveCount(), 159, 124, 159, RGB(255, 1, 1));
-				else
-					TransparentBlt(memDC1, fish.getRect().left, fish.getRect().top, fish.getWidth(), fish.getHeight(), memDC2, 124 * fish.getMoveCount(), 0, 124, 159, RGB(255, 1, 1));
+				fish.Draw(memDC1, memDC2);
+				for (auto& player : players)
+						player.Draw(memDC1, memDC2);
 			}
 			fish.addMoveCount();
 			if (fish.getMoveCount() > 3)
@@ -1122,3 +1142,7 @@ int CheckAge(int age)
 	}
 }
 
+void SetFishRect(Fish& fish, const LONG x, const LONG y)
+{
+	fish.Move(x, y);
+}

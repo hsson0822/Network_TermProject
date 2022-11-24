@@ -228,7 +228,7 @@ DWORD WINAPI RecvThread(LPVOID arg)
 
 					for (int i = 0; i < MAX_USER; ++i) {
 						x = rand() % SPAWN_WIDTH + 200;
-						y = rand() % SPAWN_HEIGHT + 200;
+						y = rand() % SPAWN_HEIGHT + 100;
 						clients[i].SetX(x);
 						clients[i].SetY(y);
 						packet.pos[i].x = x;
@@ -237,17 +237,8 @@ DWORD WINAPI RecvThread(LPVOID arg)
 						std::cout << i << " 플레이어의 좌표 : " << x << ", " << y << std::endl;
 					}
 
-
-					ZeroMemory(send_buf, sizeof(BUF_SIZE));
-					memcpy(send_buf, &packet, sizeof(packet));
-
-
-					for (auto& client : clients) {
-						SC_GAME_START_PACKET packet;
-						packet.type = SC_GAME_START;
-
+					for (auto& client : clients)
 						client.send_packet(&packet, sizeof(SC_GAME_START_PACKET));
-					}
 
 				}
 

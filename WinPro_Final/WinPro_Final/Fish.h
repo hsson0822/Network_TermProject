@@ -15,8 +15,10 @@ class Fish
 	BOOL goXY;
 	BOOL goLR;
 	BOOL goUD;
+	bool is_active;
 
 public:
+	Fish();
 	Fish(int posX, int posY);
 
 	RECT getRect();
@@ -55,6 +57,10 @@ public:
 
 	void SetX(short posX) { x = posX; }
 	void SetY(short posY) { y = posY; }
+	void SetIsActive(bool active) { is_active = active; }
 	short GetX() const { return x; };
 	short GetY() const { return y; };
+	bool GetIsActive() const { return is_active; }
+	
+	void Draw(const HDC& memDC1, const HDC& memDC2);
 };

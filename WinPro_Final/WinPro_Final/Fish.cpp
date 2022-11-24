@@ -1,16 +1,23 @@
 #include "Fish.h"
 
-Fish::Fish(int posX, int posY)
+Fish::Fish()
 {
 	width = 120;
 	height = 140;
 	age = 0;
 	exp = 0;
 	maxExp = 20;
-	rect = { posX,posY,posX + width, posY + height };
+	rect = { 0,0,0 + width, 0 + height };
 	moveDir = 4;
 	x = 0;
 	y = 0;
+	is_active = false;
+}
+
+Fish::Fish(int posX, int posY) : Fish()
+{
+	Fish();
+	rect = { posX,posY,posX + width, posY + height };
 }
 
 
@@ -62,4 +69,14 @@ void Fish::Move(short posX, short posY)
 	x = posX;
 	y = posY;
 	setRect(RECT{ x, y, x + width, y + height });
+}
+
+void Fish::Draw(const HDC& memDC1, const HDC& memDC2)
+{
+	if (is_active) {
+		if (isLR())
+			TransparentBlt(memDC1, getRect().left, getRect().top, getWidth(), getHeight(), memDC2, 124 * getMoveCount(), 159, 124, 159, RGB(255, 1, 1));
+		else
+			TransparentBlt(memDC1, getRect().left, getRect().top, getWidth(), getHeight(), memDC2, 124 * getMoveCount(), 0, 124, 159, RGB(255, 1, 1));
+	}
 }
