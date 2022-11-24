@@ -77,6 +77,8 @@ void overload_packet_process(char* buf, int packet_size, int& remain_packet)
 	}
 }
 
+static vector<Food*> foods;
+
 // 클라이언트에서 네트워크 통신용 쓰레드
 DWORD WINAPI NetworkThread(LPVOID arg)
 {
@@ -117,6 +119,29 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 
 			//패킷별 처리
 			switch (buf[0]) {
+			case SC_CREATE_FOOD:
+				SC_CREATE_FOOD_PACKET* packet = reinterpret_cast<SC_CREATE_FOOD_PACKET*>(buf);
+
+				ObjectType foodKinds = packet->type;
+				short x = packet->pos.x;
+				short y = packet->pos.y;
+				if (foodKinds == JELLYFISH)
+				{
+					//해파리
+					foods.push_back(new Food(0, x, y, 27, 30, 4));
+				}
+				else if (foodKinds == CRAB)
+				{
+					//게
+					foods.push_back(new Food(1, x, y, 85, 61, 2));
+				}
+				else if(foodKinds == SQUID)
+				{
+					//오징어
+					foods.push_back(new Food(2, x, y, 47, 72, 10));
+				}
+				break;
+
 			case SC_ADD_PLAYER: {
 				// 다른 플레이어 추가
 				// 다른 플레이어 active 로 변경
@@ -278,7 +303,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	static int selectBack;
 
 
-	static vector<Food*> foods;
+	
 	static int foodKinds;
 	static int foodCount;
 	static int foodMax;
@@ -407,31 +432,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			fish.setMoveDir(3);
 			break;
 
-			//case VK_SPACE:
-			//	if (foodCount < foodMax)
-			//	{
-			//		foodKinds = rand() % 3;
-			//		randX = rand() % rect.right;
-			//		randY = rand() % rect.bottom;
-			//		if (foodKinds == 0)
-			//		{
-			//			//해파리
-			//			foods.push_back(new Food(0, randX, randY, 27, 30, 4));
-			//		}
-			//		else if (foodKinds == 1)
-			//		{
-			//			//게
-			//			foods.push_back(new Food(1, randX, randY, 85, 61, 2));
-			//		}
-			//		else
-			//		{
-			//			//오징어
-			//			foods.push_back(new Food(2, randX, randY, 47, 72, 10));
-			//		}
-
-			//		++foodCount;
-			//	}
-			//	break;
 		}
 
 
@@ -558,32 +558,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 		if (!isGameStart)
 			break;
-
-		//if (PtInRect(&foodButton, mousePoint))
-		//{
-		//	if (foodCount < foodMax)
-		//	{
-		//		foodKinds = rand() % 3;
-		//		randX = rand() % rect.right;
-		//		randY = rand() % rect.bottom;
-		//		if (foodKinds == 0)
-		//		{
-		//			//해파리
-		//			foods.push_back(new Food(0, randX, randY, 27, 30, 4));
-		//		}
-		//		else if (foodKinds == 1)
-		//		{
-		//			//게
-		//			foods.push_back(new Food(1, randX, randY, 85, 61, 2));
-		//		}
-		//		else
-		//		{
-		//			//오징어
-		//			foods.push_back(new Food(2, randX, randY, 47, 72, 10));
-		//		}
-		//		++foodCount;
-		//	}
-		//}
 
 		if (PtInRect(&netRect, mousePoint))
 		{
