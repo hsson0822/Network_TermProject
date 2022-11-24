@@ -1,4 +1,4 @@
- #include <winsock2.h>
+ï»¿ #include <winsock2.h>
 #include <WS2tcpip.h>
 #include <iostream>
 #include <array>
@@ -8,15 +8,15 @@
 
 using namespace std;
 
-// Å¬¶óÀÌ¾ğÆ®ÀÇ Á¤º¸°¡ ´ã±è
+// í´ë¼ì´ì–¸íŠ¸ì˜ ì •ë³´ê°€ ë‹´ê¹€
 class client {
 private:
-	short x, y;		// x,y ÁÂÇ¥
-	short size;		// ¹°°í±â Å©±â
+	short x, y;		// x,y ì¢Œí‘œ
+	short size;		// ë¬¼ê³ ê¸° í¬ê¸°
 
 public:
 	bool is_ready;
-	int id;			// Å¬¶óÀÌ¾ğÆ® ±¸ºĞ¿ë id
+	int id;			// í´ë¼ì´ì–¸íŠ¸ êµ¬ë¶„ìš© id
 	int speed;
 	SOCKET sock;
 	 
@@ -51,14 +51,14 @@ public:
 	void send_add_player(int id);
 };
 
-std::array<client, MAX_USER> clients;			// Å¬¶óÀÌ¾ğÆ®µéÀÇ ÄÁÅ×ÀÌ³Ê
-std::array<object_info, MAX_OBJECT> objects;	// ¿ÀºêÁ§Æ® Á¤ º¸°¡ ´ã±æ ÄÁÅ×ÀÌ³Ê
+std::array<client, MAX_USER> clients;			// í´ë¼ì´ì–¸íŠ¸ë“¤ì˜ ì»¨í…Œì´ë„ˆ
+std::array<object_info, MAX_OBJECT> objects;	// ì˜¤ë¸Œì íŠ¸ ì • ë³´ê°€ ë‹´ê¸¸ ì»¨í…Œì´ë„ˆ
 
 int id = 0;
 CRITICAL_SECTION id_cs;
 CRITICAL_SECTION cs;
 
-// ¿À·ù °Ë»ç¿ë ÇÔ¼ö
+// ì˜¤ë¥˜ ê²€ì‚¬ìš© í•¨ìˆ˜
 void err_display(const char* msg)
 {
 	LPVOID lpMsgBuf;
@@ -88,6 +88,59 @@ void overload_packet_process(char* buf, int packet_size, int& remain_packet)
 	}
 }
 
+clock_t start, finish;
+double timeNow;
+
+void makeFood()
+{
+
+	finish = clock();
+	timeNow = (double)(finish - start) / CLOCKS_PER_SEC;
+	if (timeNow > 3.0f)
+	{
+
+		int foodKinds = rand() % 3;
+		short randX = rand() % 1800;
+		short randY = rand() % 1000;
+
+		cout << foodKinds << " ï¿½ï¿½ï¿½Ì°ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ x:" << randX << "  y:" << randY << endl;
+
+		SC_CREATE_FOOD_PACKET packet;
+
+		if (foodKinds == 0)
+		{
+			//ê²Œ
+			//foods.push_back(new Food(1, randX, randY, 85, 61, 2));
+			packet.type = CRAB;
+		}
+		else if (foodKinds == 1)
+		{
+			//ì˜¤ì§•ì–´
+			//foods.push_back(new Food(2, randX, randY, 47, 72, 10));
+			packet.type = SQUID;
+		}
+		else
+		{
+			//í•´íŒŒë¦¬
+			//foods.push_back(new Food(0, randX, randY, 27, 30, 4));
+			packet.type = JELLYFISH;
+		}
+
+		start = clock();
+		timeNow = 0.0f;
+
+		packet.id = id;
+		packet.pos.x = randX;
+		packet.pos.y = randY;
+
+		for (auto& client : clients) {
+			client.send_packet(&packet, sizeof(packet));
+		}
+
+	}
+
+}
+
 DWORD WINAPI CalculateThread(LPVOID arg)
 {
 	
@@ -95,7 +148,7 @@ DWORD WINAPI CalculateThread(LPVOID arg)
 	return 0;
 }
 
-// Å¬¶óÀÌ¾ğÆ® º° ¾²·¹µå »ı¼º
+// í´ë¼ì´ì–¸íŠ¸ ë³„ ì“°ë ˆë“œ ìƒì„±
 DWORD WINAPI RecvThread(LPVOID arg)
 {
 	int retval;
@@ -123,7 +176,7 @@ DWORD WINAPI RecvThread(LPVOID arg)
 		remain_packet = retval;
 		while (remain_packet > 0) {
 
-			// ¹öÆÛ Ã³¸® 
+			// ë²„í¼ ì²˜ë¦¬ 
 			switch (buf[0]) {
 			case CS_PLAYER_MOVE: {
 				CS_MOVE_PACKET* move_packet = reinterpret_cast<CS_MOVE_PACKET*>(buf);
@@ -133,7 +186,7 @@ DWORD WINAPI RecvThread(LPVOID arg)
 				short x = cl.GetX();
 				short y = cl.GetY();
 
-				// ¹æÇâ¿¡ µû¶ó x, y °ªÀÌ ¼Óµµ¸¸Å­ º¯ÇÔ
+				// ë°©í–¥ì— ë”°ë¼ x, y ê°’ì´ ì†ë„ë§Œí¼ ë³€í•¨
 				switch (move_packet->dir) {
 				case LEFT_DOWN:
 					x -= cl.speed;
@@ -149,9 +202,9 @@ DWORD WINAPI RecvThread(LPVOID arg)
 					break;
 				}
 
-				// Ãæµ¹Ã³¸® ºÎºĞ ÇÊ¿ä
+				// ì¶©ëŒì²˜ë¦¬ ë¶€ë¶„ í•„ìš”
 
-				// ¼­¹öÀÇ Å¬¶óÀÌ¾ğÆ® Á¤º¸¿¡ ÀÌµ¿ÇÑ ÁÂÇ¥°ª ÃÖ½ÅÈ­
+				// ì„œë²„ì˜ í´ë¼ì´ì–¸íŠ¸ ì •ë³´ì— ì´ë™í•œ ì¢Œí‘œê°’ ìµœì‹ í™”
 				cl.SetX(x);
 				cl.SetY(y);
 
@@ -163,7 +216,7 @@ DWORD WINAPI RecvThread(LPVOID arg)
 				packet.pos.x = x;
 				packet.pos.y = y;
 
-				// ³» ÀÌµ¿ Á¤º¸¸¦ ¸ğµç Å¬¶óÀÌ¾ğÆ®¿¡ Àü¼Û
+				// ë‚´ ì´ë™ ì •ë³´ë¥¼ ëª¨ë“  í´ë¼ì´ì–¸íŠ¸ì— ì „ì†¡
 				for (auto& client : clients) {
 					if (client.id == -1)
 						continue;
@@ -182,21 +235,21 @@ DWORD WINAPI RecvThread(LPVOID arg)
 
 			case CS_LOGIN: {
 				for (auto& client : clients) {
-					// Á¢¼ÓÇÏÁö ¾Ê¾Ò´Ù¸é ³Ñ±è
+					// ì ‘ì†í•˜ì§€ ì•Šì•˜ë‹¤ë©´ ë„˜ê¹€
 					if (client.id == -1)
 						continue;
-					// ´ë»óÀÌ ³ª¶ó¸é ³Ñ±è
+					// ëŒ€ìƒì´ ë‚˜ë¼ë©´ ë„˜ê¹€
 					if (client.id == this_id)
 						continue;
 
-					// ´Ù¸¥ Å¬¶óÀÌ¾ğÆ® µé¿¡ ³» Á¤º¸¸¦ ³Ñ±è
+					// ë‹¤ë¥¸ í´ë¼ì´ì–¸íŠ¸ ë“¤ì— ë‚´ ì •ë³´ë¥¼ ë„˜ê¹€
 					client.send_add_player(this_id);
 
-					// ³ªÇÑÅ× ´Ù¸¥ Å¬¶óÀÌ¾ğÆ® Á¤º¸¸¦ ³Ñ±è
+					// ë‚˜í•œí…Œ ë‹¤ë¥¸ í´ë¼ì´ì–¸íŠ¸ ì •ë³´ë¥¼ ë„˜ê¹€
 					clients[this_id].send_add_player(client.id);
 				}
 
-				// ÀÚ½ÅÀÇ id¸¦ ³Ñ±è
+				// ìì‹ ì˜ idë¥¼ ë„˜ê¹€
 				SC_LOGIN_OK_PACKET packet;
 				packet.type = SC_LOGIN_OK;
 				packet.id = this_id;
@@ -211,10 +264,10 @@ DWORD WINAPI RecvThread(LPVOID arg)
 			}
 
 			case CS_PLAYER_READY: {
-				// Å¬¶óÀÌ¾ğÆ®·ÎºÎÅÍ ÁØºñ¿Ï·á ÆĞÅ¶À» ¹ŞÀ¸¸é
-				// ready »óÅÂ·Î º¯°æ
+				// í´ë¼ì´ì–¸íŠ¸ë¡œë¶€í„° ì¤€ë¹„ì™„ë£Œ íŒ¨í‚·ì„ ë°›ìœ¼ë©´
+				// ready ìƒíƒœë¡œ ë³€ê²½
 
-				// ÀÓ½Ã µ¿±âÈ­
+				// ì„ì‹œ ë™ê¸°í™”
 				EnterCriticalSection(&cs);
 				clients[this_id].is_ready = true;
 				LeaveCriticalSection(&cs);
@@ -224,12 +277,12 @@ DWORD WINAPI RecvThread(LPVOID arg)
 					if (client.is_ready)
 						++ready_count;
 
-				// 3¸í´Ù ÁØºñÇß´Ù¸é GAME_START_PACKET Àü¼Û
+				// 3ëª…ë‹¤ ì¤€ë¹„í–ˆë‹¤ë©´ GAME_START_PACKET ì „ì†¡
 				if (ready_count == MAX_USER) {
 					SC_GAME_START_PACKET packet;
 					packet.type = SC_GAME_START;
 					
-					// °è»ê½º·¹µå »ı¼º
+					// ê³„ì‚°ìŠ¤ë ˆë“œ ìƒì„±
 					HANDLE hThread;
 					hThread = CreateThread(nullptr, 0, CalculateThread,
 						reinterpret_cast<LPVOID>(client_socket), 0, nullptr);
@@ -244,7 +297,7 @@ DWORD WINAPI RecvThread(LPVOID arg)
 						packet.pos[i].x = x;
 						packet.pos[i].y = y;
 
-						std::cout << i << " ÇÃ·¹ÀÌ¾îÀÇ ÁÂÇ¥ : " << x << ", " << y << std::endl;
+						std::cout << i << " í”Œë ˆì´ì–´ì˜ ì¢Œí‘œ : " << x << ", " << y << std::endl;
 					}
 					for (auto& client : clients)
 						client.send_packet(&packet, sizeof(SC_GAME_START_PACKET));
@@ -256,13 +309,13 @@ DWORD WINAPI RecvThread(LPVOID arg)
 			}
 
 			}
-			// ÆĞÅ¶º° Ã³¸® switch
+			// íŒ¨í‚·ë³„ ì²˜ë¦¬ switch
 
 		}
-		// ³²Àº ÆĞÅ¶ Ã³¸®
+		// ë‚¨ì€ íŒ¨í‚· ì²˜ë¦¬
 
 	}
-	// recv Á¾·á
+	// recv ì¢…ë£Œ
 
 	closesocket(client_socket);
 
@@ -305,14 +358,14 @@ int main(int argc, char* argv[])
 	int addrlen;
 	HANDLE hThread;
 
-	// µ¿±âÈ­ cs, event ÃÊ±âÈ­
+	// ë™ê¸°í™” cs, event ì´ˆê¸°í™”
 	InitializeCriticalSection(&id_cs);
 	InitializeCriticalSection(&cs);
 	 
 	while (true) {
 
-		// 3¸íÀ» ¹ŞÀ¸¸é accept ¸¦ Á¾·áÇÏ°í ´Ù¸¥ÀÏÀ» ÇÏµµ·Ï Ãß°¡ÇÒ ¿¹Á¤
-		// 3¸íÀÌ °ÔÀÓ ½ÃÀÛÀ» ´­·¶´ÂÁö °Ë»çÇÏ´Â °úÁ¤ÀÌ ÇÊ¿äÇÔ
+		// 3ëª…ì„ ë°›ìœ¼ë©´ accept ë¥¼ ì¢…ë£Œí•˜ê³  ë‹¤ë¥¸ì¼ì„ í•˜ë„ë¡ ì¶”ê°€í•  ì˜ˆì •
+		// 3ëª…ì´ ê²Œì„ ì‹œì‘ì„ ëˆŒë €ëŠ”ì§€ ê²€ì‚¬í•˜ëŠ” ê³¼ì •ì´ í•„ìš”í•¨
 
 		addrlen = sizeof(addr);
 		client_socket = accept(listen_sock, reinterpret_cast<sockaddr*>(&addr), &addrlen);

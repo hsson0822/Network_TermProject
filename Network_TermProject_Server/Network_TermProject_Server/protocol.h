@@ -65,6 +65,13 @@ struct object_info {
 // 서버 -> 클라 패킷의 id 는 클라이언트 구분용 id
 
 #pragma pack(push, 1)
+struct SC_CREATE_FOOD_PACKET
+{
+	ObjectType type;
+	int id;
+	position pos;
+};
+
 struct SC_MOVE_PACKET {
 	char type;
 	int id;
