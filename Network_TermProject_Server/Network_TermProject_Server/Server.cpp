@@ -143,7 +143,11 @@ void makeFood()
 
 DWORD WINAPI CalculateThread(LPVOID arg)
 {
-	
+	while (true)
+	{
+		makeFood();
+
+	}
 
 	return 0;
 }
