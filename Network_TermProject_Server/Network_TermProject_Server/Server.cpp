@@ -90,6 +90,7 @@ void overload_packet_process(char* buf, int packet_size, int& remain_packet)
 
 clock_t start, finish;
 double timeNow;
+array<object_info_claculate, MAX_OBJECT> objects_calculate;
 
 void makeFood()
 {
@@ -110,13 +111,17 @@ void makeFood()
 		if (foodKinds == 0)
 		{
 			//게
-			//foods.push_back(new Food(1, randX, randY, 85, 61, 2));
 			packet.type = CRAB;
 		}
 		else if (foodKinds == 1)
 		{
 			//오징어
 			//foods.push_back(new Food(2, randX, randY, 47, 72, 10));
+			for (object_info_claculate oic : objects_calculate)
+			{
+				if (!oic.is_active)
+					oic.object_info;
+			}
 			packet.type = SQUID;
 		}
 		else
