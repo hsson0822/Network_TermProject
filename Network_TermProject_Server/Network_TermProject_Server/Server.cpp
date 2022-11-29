@@ -131,23 +131,23 @@ void makeFood()
 		{
 			//게
 			packet.object.type = CRAB;
-			col_x = 40;
-			col_y = 30;
+			col_x = 85;
+			col_y = 61;
 		}
 		else if (foodKinds == SQUID)
 		{
 			//오징어
 			//foods.push_back(new Food(2, randX, randY, 47, 72, 10));
 			packet.object.type = SQUID;
-			col_x = 30;
-			col_y = 50;
+			col_x = 42;
+			col_y = 72;
 		}
 		else
 		{
 			//해파리
 			//foods.push_back(new Food(0, randX, randY, 27, 30, 4));
 			packet.object.type = JELLYFISH;
-			col_x = 30;
+			col_x = 27;
 			col_y = 30;
 		}
 
@@ -200,7 +200,7 @@ void makeObstacle()
 		packet.type = SC_CREATE_OBSTACLE;
 		short col_x{}, col_y{};
 
-		if (obstacleKinds == 0)
+		if (obstacleKinds == NET)
 		{
 			//그물
 			packet.object.type = NET;
@@ -209,7 +209,7 @@ void makeObstacle()
 			randY = 0;
 
 		}
-		else if (obstacleKinds == 1)
+		else if (obstacleKinds == HOOK)
 		{
 			//바늘
 			packet.object.type = HOOK;
