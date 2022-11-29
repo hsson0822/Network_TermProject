@@ -57,6 +57,7 @@ std::array<object_info, MAX_OBJECT> objects;	// 오브젝트 정 보가 담길 �
 int id = 0;
 CRITICAL_SECTION id_cs;
 CRITICAL_SECTION cs;
+BOOL c_flag = false;
 
 // 오류 검사용 함수
 void err_display(const char* msg)
@@ -90,7 +91,7 @@ void overload_packet_process(char* buf, int packet_size, int& remain_packet)
 
 clock_t start, finish;
 double timeNow;
-array<object_info_claculate, MAX_OBJECT> objects_calculate;
+array<object_info_claculate, MAX_OBJECT> objects_calculate{};
 
 void makeFood()
 {
@@ -106,44 +107,62 @@ void makeFood()
 
 		cout << foodKinds << " ���̰� ������ x:" << randX << "  y:" << randY << endl;
 
-		SC_CREATE_FOOD_PACKET packet;
+		SC_CREATE_OBJCET_PACKET packet;
+		packet.type = SC_CREATE_FOOD;
+		short col_x{}, col_y{};
 
 		if (foodKinds == 0)
 		{
 			//게
-			packet.type = CRAB;
+			packet.object.type = CRAB;
+			col_x = 40;
+			col_y = 30;
 		}
 		else if (foodKinds == 1)
 		{
 			//오징어
 			//foods.push_back(new Food(2, randX, randY, 47, 72, 10));
-			for (object_info_claculate oic : objects_calculate)
-			{
-				if (!oic.is_active)
-					oic.object_info;
-			}
-			packet.type = SQUID;
+			packet.object.type = SQUID;
+			col_x = 30;
+			col_y = 50;
 		}
 		else
 		{
 			//해파리
 			//foods.push_back(new Food(0, randX, randY, 27, 30, 4));
-			packet.type = JELLYFISH;
+			packet.object.type = JELLYFISH;
+			col_x = 30;
+			col_y = 30;
 		}
 
 		start = clock();
 		timeNow = 0.0f;
 
-		packet.id = id;
-		packet.pos.x = randX;
-		packet.pos.y = randY;
+		packet.object.pos.x = randX;
+		packet.object.pos.y = randY;
 
 		for (auto& client : clients) {
-			client.send_packet(&packet, sizeof(packet));
+			client.send_packet(&packet, sizeof(SC_CREATE_OBJCET_PACKET));
 		}
-
+		cout << "========================" << endl;
+		for (object_info_claculate oic : objects_calculate)
+		{
+			if (!oic.is_active)
+			{
+				oic.is_active = true;
+				oic.object_info.type = packet.object.type;
+				oic.object_info.pos.x = packet.object.pos.x;
+				oic.object_info.pos.y = packet.object.pos.y;
+				oic.collision_box_x = col_x;
+				oic.collision_box_y = col_y;
+				break;
+			}
+		}
 	}
 
+}
+void makeObstacle()
+{
 }
 
 DWORD WINAPI CalculateThread(LPVOID arg)
@@ -151,7 +170,7 @@ DWORD WINAPI CalculateThread(LPVOID arg)
 	while (true)
 	{
 		makeFood();
-
+		makeObstacle();
 	}
 
 	return 0;
@@ -291,11 +310,6 @@ DWORD WINAPI RecvThread(LPVOID arg)
 					SC_GAME_START_PACKET packet;
 					packet.type = SC_GAME_START;
 					
-					// 계산스레드 생성
-					HANDLE hThread;
-					hThread = CreateThread(nullptr, 0, CalculateThread,
-						reinterpret_cast<LPVOID>(client_socket), 0, nullptr);
-					
 					short x, y;
 
 					for (int i = 0; i < MAX_USER; ++i) {
@@ -311,6 +325,10 @@ DWORD WINAPI RecvThread(LPVOID arg)
 					for (auto& client : clients)
 						client.send_packet(&packet, sizeof(SC_GAME_START_PACKET));
 
+						cout << "생성 성공" << endl;
+						// 계산스레드 생성
+						HANDLE hThread = CreateThread(nullptr, 0, CalculateThread,
+							reinterpret_cast<LPVOID>(client_socket), 0, nullptr);
 				}
 
 				overload_packet_process(buf, sizeof(CS_READY_PACKET), remain_packet);
