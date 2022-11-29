@@ -46,6 +46,23 @@ long start_x{ -300 };
 Fish fish(0, 0);
 int fishSpeed = 5;
 Fish players[MAX_USER];
+
+RECT netRect;
+int netDir;
+
+RECT hookRect;
+int hookX;
+int hookCount;
+
+RECT sharkRect;
+int sharkDir;
+int sharkCount;
+int sharkY;
+//int sharkWave;
+
+int eventNum;
+
+
 // players 는 다른 플레이어
 // 현재는 Fish class를 사용하지만 불필요한 멤버 함수, 변수를 제외한 클래스로 배열을 만들어야 함
 
@@ -119,11 +136,57 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 
 			//패킷별 처리
 			switch (buf[0]) {
+			case SC_CREATE_OBSTACLE:
+			{
+				cout << "받음 - 장애물" << endl;
+				SC_CREATE_OBJCET_PACKET* packet = reinterpret_cast<SC_CREATE_OBJCET_PACKET*>(buf);
+
+				eventNum = packet->object.type;
+				//short x = packet->object.pos.x;
+				//short y = packet->object.pos.y;
+
+				switch (eventNum)
+				{
+				case 0:
+					netDir = rand() % 2;
+					if (netDir == 0)
+					{
+						netRect = { rect.left - 200, rect.top, rect.left, rect.top + 400 };
+					}
+					else
+					{
+						netRect = { rect.right, rect.top, rect.right + 200, rect.top + 400 };
+					}
+					cout << "그물" << endl;
+					break;
+
+				case 1:
+					hookX = rand() % rect.right;
+					hookCount = 0;
+					hookRect = { hookX,-300,hookX + 100,0 };
+					cout << "바늘" << endl;
+					break;
+
+				case 2:
+					sharkDir = rand() % 2;
+					sharkY = rand() % rect.bottom;
+					if (sharkDir == 0)
+						sharkRect = { rect.left - 200, sharkY,rect.left,sharkY + 100 };
+					else
+						sharkRect = { rect.right, sharkY,rect.right + 200,sharkY + 100 };
+					cout << "상어" << endl;
+					break;
+				}
+
+				overload_packet_process(buf, sizeof(SC_CREATE_OBJCET_PACKET), remain_packet);
+				break;
+			}
+
 			case SC_CREATE_FOOD:
 			{
 				cout << "받음 - 음식" << endl;
 				SC_CREATE_OBJCET_PACKET* packet = reinterpret_cast<SC_CREATE_OBJCET_PACKET*>(buf);
-				
+
 				short x = packet->object.pos.x;
 				short y = packet->object.pos.y;
 				switch (packet->object.type) {
@@ -222,7 +285,7 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				overload_packet_process(buf, sizeof(SC_GAME_START_PACKET), remain_packet);
 				SetTimer(hWnd, 2, 70, NULL);	// 먹이 낙하
 				SetTimer(hWnd, 3, 70, NULL);	// 물고기 이동 / 먹이 섭취
-				SetTimer(hWnd, 4, 20000, NULL);	// 이벤트 생성 20초
+				//SetTimer(hWnd, 4, 30000, NULL);	// 이벤트 생성 30초
 				SetTimer(hWnd, 5, 70, NULL);	// 이벤트 진행
 
 				break;
@@ -248,12 +311,12 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				overload_packet_process(buf, sizeof(SC_MOVE_PACKET), remain_packet);
 				break;
 			}
-			
+
 			case SC_GAME_OVER: {
 				cout << "게임 종료" << endl;
 
 				SC_GAME_OVER_PACKET* packet = reinterpret_cast<SC_GAME_OVER_PACKET*>(buf);
-				
+
 				// 게임 종료시 점수를 마지막으로 받음
 				for (int i = 0; i < MAX_USER; ++i) {
 					if (i == id)
@@ -318,10 +381,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
 	WndClass.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
 	RegisterClassEx(&WndClass);
 
-	int width = GetSystemMetrics(SM_CXSCREEN);
-	int height = GetSystemMetrics(SM_CYSCREEN);
-
-	hWnd = CreateWindow(lpszClass, lpszWindowName, WS_OVERLAPPEDWINDOW, 0, 0, width, height - 100, NULL, (HMENU)NULL, hInstance, NULL);
+	hWnd = CreateWindow(lpszClass, lpszWindowName, WS_OVERLAPPEDWINDOW, 0, 0, 1800, 900, NULL, (HMENU)NULL, hInstance, NULL);
 	ShowWindow(hWnd, nCmdShow);
 	UpdateWindow(hWnd);
 
@@ -355,7 +415,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	static int selectBack;
 
 
-	
+
 	static int foodKinds;
 	static int foodCount;
 	static int foodMax;
@@ -364,22 +424,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	static POINT mousePoint;
 
 	static BOOL caught;
-	static int eventNum;
 	static int eventClick;
 	static BOOL eventOut;
 
-	static RECT netRect;
-	static int netDir;
-
-	static int hookX;
-	static RECT hookRect;
-	static int hookCount;
-
-	static RECT sharkRect;
-	static int sharkDir;
-	static int sharkCount;
-	static int sharkY;
-	static int sharkWave;
+	
 
 	static HBITMAP playButton;
 	static RECT playButtonRect;
@@ -439,7 +487,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		eventNum = 5;
 		eventOut = false;
 
-		sharkWave = 0;
+		//sharkWave = 0;
 
 		foodExp = 25;
 
@@ -816,7 +864,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 			//먹이 낙하
 		case 2:
-			for (vector<Food*>::iterator iter = foods.begin(); iter != foods.end(); ++iter)
+			/*for (vector<Food*>::iterator iter = foods.begin(); iter != foods.end(); ++iter)
 			{
 				(*iter)->setY((*iter)->getY() + 4);
 				if ((*iter)->getY() > rect.bottom - 120)
@@ -827,7 +875,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 				if (iter == foods.end())
 					break;
-			}
+			}*/
 
 			break;
 
@@ -927,39 +975,38 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 			// 이벤트 생성
 		case 4:
-			eventNum = rand() % 3;
-			eventClick = 0;
-			eventOut = false;
-			// 화난 얼굴
-			angryCount = 0;
-
-			if (eventNum == 0)
-			{
-				netDir = rand() % 2;
-				if (netDir == 0)
-				{
-					netRect = { rect.left - 200, rect.top, rect.left, rect.top + 400 };
-				}
-				else
-				{
-					netRect = { rect.right, rect.top, rect.right + 200, rect.top + 400 };
-				}
-			}
-			else if (eventNum == 1)
-			{
-				hookX = rand() % rect.right;
-				hookCount = 0;
-				hookRect = { hookX,-300,hookX + 100,0 };
-			}
-			else if (eventNum == 2)
-			{
-				sharkDir = rand() % 2;
-				sharkY = rand() % rect.bottom;
-				if (sharkDir == 0)
-					sharkRect = { rect.left - 200, sharkY,rect.left,sharkY + 100 };
-				else
-					sharkRect = { rect.right, sharkY,rect.right + 200,sharkY + 100 };
-			}
+			//eventNum = rand() % 3;
+			//eventClick = 0;
+			//eventOut = false;
+			//// 화난 얼굴
+			//angryCount = 0;
+			//if (eventNum == 0)
+			//{
+			//	netDir = rand() % 2;
+			//	if (netDir == 0)
+			//	{
+			//		netRect = { rect.left - 200, rect.top, rect.left, rect.top + 400 };
+			//	}
+			//	else
+			//	{
+			//		netRect = { rect.right, rect.top, rect.right + 200, rect.top + 400 };
+			//	}
+			//}
+			//else if (eventNum == 1)
+			//{
+			//	hookX = rand() % rect.right;
+			//	hookCount = 0;
+			//	hookRect = { hookX,-300,hookX + 100,0 };
+			//}
+			//else if (eventNum == 2)
+			//{
+			//	sharkDir = rand() % 2;
+			//	sharkY = rand() % rect.bottom;
+			//	if (sharkDir == 0)
+			//		sharkRect = { rect.left - 200, sharkY,rect.left,sharkY + 100 };
+			//	else
+			//		sharkRect = { rect.right, sharkY,rect.right + 200,sharkY + 100 };
+			//}
 
 			break;
 
@@ -1025,7 +1072,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					sharkRect = { sharkRect.left - 7, sharkRect.top, sharkRect.right - 7,sharkRect.bottom };
 				}
 
-				++sharkWave;
+				/*++sharkWave;
 				if (sharkWave < 12)
 				{
 					sharkRect = { sharkRect.left, sharkRect.top + 2, sharkRect.right,sharkRect.bottom + 2 };
@@ -1039,7 +1086,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 						fish.setRect(RECT{ fish.getRect().left,fish.getRect().top - 2, fish.getRect().right, fish.getRect().bottom - 2 });
 				}
 				else
-					sharkWave = 0;
+					sharkWave = 0;*/
 
 				if (!caught && !eventOut)
 				{

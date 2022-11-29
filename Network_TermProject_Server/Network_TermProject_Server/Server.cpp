@@ -98,17 +98,17 @@ void overload_packet_process(char* buf, int packet_size, int& remain_packet)
 	}
 }
 
-chrono::system_clock::time_point start, current;
-int ms{};
+chrono::system_clock::time_point foodStart, foodCurrent;
+int foodMs{};
 array<object_info_claculate, MAX_OBJECT> objects_calculate{};
 
 void makeFood()
 {
 
-	current = chrono::system_clock::now();
-	ms = chrono::duration_cast<chrono::milliseconds>(current - start).count();
+	foodCurrent = chrono::system_clock::now();
+	foodMs = chrono::duration_cast<chrono::milliseconds>(foodCurrent - foodStart).count();
 	// 생성 후 지난 시간이 1500ms 를 넘으면 생성
-	if (ms > 1500)
+	if (foodMs > 1500)
 	{
 		for (const auto& c : clients)
 		{
@@ -151,7 +151,7 @@ void makeFood()
 			col_y = 30;
 		}
 
-		start = chrono::system_clock::now();
+		foodStart = chrono::system_clock::now();
 
 		packet.object.pos.x = randX;
 		packet.object.pos.y = randY;
@@ -178,8 +178,64 @@ void makeFood()
 
 }
 
+chrono::system_clock::time_point obstacleStart, obstacleCurrent;
+int obstacleMs;
+
 void makeObstacle()
 {
+	obstacleCurrent = chrono::system_clock::now();
+	obstacleMs = chrono::duration_cast<chrono::milliseconds>(obstacleCurrent - obstacleStart).count();
+	// 생성 후 지난 시간이 30000ms 를 넘으면 생성
+	if (obstacleMs > 30000)
+	{
+
+		int obstacleKinds = rand() % 3;
+		short randX;
+		short randY;
+		int obstacleHP = rand() % 30;
+
+		cout << obstacleKinds << " 장애물 생성" << endl;
+
+		SC_CREATE_OBJCET_PACKET packet;
+		packet.type = SC_CREATE_OBSTACLE;
+		short col_x{}, col_y{};
+
+		if (obstacleKinds == 0)
+		{
+			//그물
+			packet.object.type = NET;
+
+			randX = rand() % 1800;
+			randY = 0;
+
+		}
+		else if (obstacleKinds == 1)
+		{
+			//바늘
+			packet.object.type = HOOK;
+
+			randX = rand() % 1800;
+			randY = 0;
+		}
+		else
+		{
+			//상어
+			packet.object.type = SHARK;
+
+			randX = 0;
+			randY = rand() % 1000;
+		}
+
+		obstacleStart = chrono::system_clock::now();
+
+		packet.object.pos.x = randX;
+		packet.object.pos.y = randY;
+
+		for (auto& client : clients) {
+			client.send_packet(&packet, sizeof(SC_CREATE_OBJCET_PACKET));
+		}
+
+	}
 }
 
 DWORD WINAPI CalculateThread(LPVOID arg)
@@ -187,7 +243,8 @@ DWORD WINAPI CalculateThread(LPVOID arg)
 	auto start_time = chrono::system_clock::now();
 	chrono::system_clock::time_point current_time;
 	int duration{};
-	start = chrono::system_clock::now();
+	foodStart = chrono::system_clock::now();
+	obstacleStart = chrono::system_clock::now();
 	while (duration < TIME_LIMIT)
 	{
 			
