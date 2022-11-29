@@ -58,15 +58,15 @@ struct position {
 
 // 오브젝트들의 정보가 담김
 struct object_info {
-	short x, y;		// 오브젝트 좌표
+	position pos;		// 오브젝트 좌표
 	char type;		// 오브젝트 종류
 };
 
 struct object_info_claculate {
 	object_info object_info;
 	bool is_active = false;
-	short collision_x, collision_y;
-}
+	short collision_box_x, collision_box_y;
+};
 
 // 서버 -> 클라 패킷의 id 는 클라이언트 구분용 id
 
