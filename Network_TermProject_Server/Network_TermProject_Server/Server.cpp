@@ -209,7 +209,8 @@ void makeObstacle()
 
 			randX = rand() % 1800;
 			randY = 0;
-
+			col_x = 200;
+			col_y = 400;
 		}
 		else if (obstacleKinds == HOOK)
 		{
@@ -218,6 +219,8 @@ void makeObstacle()
 
 			randX = rand() % 1800;
 			randY = 0;
+			col_x = 100;
+			col_y = 300;
 		}
 		else
 		{
@@ -226,6 +229,8 @@ void makeObstacle()
 
 			randX = 0;
 			randY = rand() % 1000;
+			col_x = 200;
+			col_y = 100;
 		}
 
 		obstacleStart = chrono::system_clock::now();
