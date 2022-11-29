@@ -235,6 +235,92 @@ void makeObstacle()
 			client.send_packet(&packet, sizeof(SC_CREATE_OBJCET_PACKET));
 		}
 
+		for (object_info_claculate oic : objects_calculate)
+		{
+			if (!oic.is_active)
+			{
+				oic.is_active = true;
+				oic.object_info.type = packet.object.type;
+				oic.object_info.pos.x = packet.object.pos.x;
+				oic.object_info.pos.y = packet.object.pos.y;
+				oic.collision_box_x = col_x;
+				oic.collision_box_y = col_y;
+				break;
+			}
+		}
+	}
+void updateObjects()
+{
+	for (object_info_claculate oic : objects_calculate)
+	{
+		if (oic.is_active)
+		{
+			switch (oic.object_info.type)
+			{
+			case NET:
+			{
+				break;
+			}
+			case SHARK:
+			{
+				break;
+			}
+			case HOOK:
+			{
+				break;
+			}
+			case CRAB:
+			{
+				break;
+			}
+			case SQUID:
+			{
+				break;
+			}
+			case JELLYFISH:
+			{
+				break;
+			}
+
+			}
+		}
+	}
+}
+void collisionObjectPlayer()
+{
+	for (object_info_claculate oic : objects_calculate)
+	{
+		if (oic.is_active)
+		{
+			switch (oic.object_info.type)
+			{
+			case NET:
+			{
+				break;
+			}
+			case SHARK:
+			{
+				break;
+			}
+			case HOOK:
+			{
+				break;
+			}
+			case CRAB:
+			{
+				break;
+			}
+			case SQUID:
+			{
+				break;
+			}
+			case JELLYFISH:
+			{
+				break;
+			}
+
+			}
+		}
 	}
 }
 

@@ -74,6 +74,7 @@ struct object_info_claculate {
 	object_info object_info;
 	bool is_active = false;
 	short collision_box_x, collision_box_y;
+	bool b_hook = false;
 };
 
 // 서버 -> 클라 패킷의 id 는 클라이언트 구분용 id
