@@ -675,17 +675,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				if (f->getFishKinds() == 0)
 				{
 					oldBit2 = (HBITMAP)SelectObject(memDC2, jelly);
-					TransparentBlt(memDC1, f->getX(), f->getY(), 30, 30, memDC2, 27 * f->getMoveCount(), 0, 27, 30, RGB(255, 1, 1));
+					TransparentBlt(memDC1, f->getX(), f->getY(), 27, 30, memDC2, 27 * f->getMoveCount(), 0, 27, 30, RGB(255, 1, 1));
 				}
 				else if (f->getFishKinds() == 1)
 				{
 					oldBit2 = (HBITMAP)SelectObject(memDC2, crab);
-					TransparentBlt(memDC1, f->getX(), f->getY(), 40, 30, memDC2, 85 * f->getMoveCount(), 0, 85, 61, RGB(255, 1, 1));
+					TransparentBlt(memDC1, f->getX(), f->getY(), 85, 61, memDC2, 85 * f->getMoveCount(), 0, 85, 61, RGB(255, 1, 1));
 				}
 				else
 				{
 					oldBit2 = (HBITMAP)SelectObject(memDC2, squid);
-					TransparentBlt(memDC1, f->getX(), f->getY(), 30, 50, memDC2, 47 * f->getMoveCount(), 0, 47, 72, RGB(255, 1, 1));
+					TransparentBlt(memDC1, f->getX(), f->getY(), 42, 72, memDC2, 47 * f->getMoveCount(), 0, 47, 72, RGB(255, 1, 1));
 				}
 
 				f->addMoveCount();
