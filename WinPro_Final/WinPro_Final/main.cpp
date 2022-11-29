@@ -120,11 +120,13 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 			//패킷별 처리
 			switch (buf[0]) {
 			case SC_CREATE_FOOD:
-				SC_CREATE_FOOD_PACKET* packet = reinterpret_cast<SC_CREATE_FOOD_PACKET*>(buf);
+			{
+				cout << "받음 - 음식" << endl;
+				SC_CREATE_OBJCET_PACKET* packet = reinterpret_cast<SC_CREATE_OBJCET_PACKET*>(buf);
 
-				ObjectType foodKinds = packet->type;
-				short x = packet->pos.x;
-				short y = packet->pos.y;
+				ObjectType foodKinds = (ObjectType)packet->type;
+				short x = packet->object.pos.x;
+				short y = packet->object.pos.y;
 				if (foodKinds == JELLYFISH)
 				{
 					//해파리
@@ -135,12 +137,13 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 					//게
 					foods.push_back(new Food(1, x, y, 85, 61, 2));
 				}
-				else if(foodKinds == SQUID)
+				else if (foodKinds == SQUID)
 				{
 					//오징어
 					foods.push_back(new Food(2, x, y, 47, 72, 10));
 				}
 				break;
+			}
 
 			case SC_ADD_PLAYER: {
 				// 다른 플레이어 추가
