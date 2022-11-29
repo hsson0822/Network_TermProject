@@ -306,41 +306,53 @@ void updateObjects()
 	}
 }
 
+void progress_Collision(client &client, object_info_claculate &oic)
+{
+	switch (oic.object_info.type)
+	{
+	case NET:
+	{
+		break;
+	}
+	case SHARK:
+	{
+		break;
+	}
+	case HOOK:
+	{
+		break;
+	}
+	case CRAB:
+	{
+		break;
+	}
+	case SQUID:
+	{
+		break;
+	}
+	case JELLYFISH:
+	{
+		break;
+	}
+	}
+}
+
 void collisionObjectPlayer()
 {
-	for (object_info_claculate oic : objects_calculate)
+	for (client client : clients)
 	{
-		if (oic.is_active)
+		RECT tmp{};
+		RECT playerRect = RECT{ };
+		for (object_info_claculate oic : objects_calculate)
 		{
-			switch (oic.object_info.type)
+			if (oic.is_active)
 			{
-			case NET:
-			{
-				break;
-			}
-			case SHARK:
-			{
-				break;
-			}
-			case HOOK:
-			{
-				break;
-			}
-			case CRAB:
-			{
-				break;
-			}
-			case SQUID:
-			{
-				break;
-			}
-			case JELLYFISH:
-			{
-				break;
-			}
-
+				RECT objectRect = RECT{ };
+				if (IntersectRect(&tmp, &playerRect, &objectRect))
+					progress_Collision(client, oic);
 			}
 		}
+
 	}
 }
 
