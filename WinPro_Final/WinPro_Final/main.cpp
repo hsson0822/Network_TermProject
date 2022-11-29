@@ -123,25 +123,28 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 			{
 				cout << "받음 - 음식" << endl;
 				SC_CREATE_OBJCET_PACKET* packet = reinterpret_cast<SC_CREATE_OBJCET_PACKET*>(buf);
-
-				ObjectType foodKinds = (ObjectType)packet->type;
+				
 				short x = packet->object.pos.x;
 				short y = packet->object.pos.y;
-				if (foodKinds == JELLYFISH)
-				{
-					//해파리
+				switch (packet->object.type) {
+				case JELLYFISH:
 					foods.push_back(new Food(0, x, y, 27, 30, 4));
-				}
-				else if (foodKinds == CRAB)
-				{
-					//게
+					cout << "해파리" << endl;
+					break;
+
+				case CRAB:
 					foods.push_back(new Food(1, x, y, 85, 61, 2));
-				}
-				else if (foodKinds == SQUID)
-				{
-					//오징어
+					cout << "게" << endl;
+					break;
+
+				case SQUID:
 					foods.push_back(new Food(2, x, y, 47, 72, 10));
+					cout << "오징어" << endl;
+					break;
+
 				}
+
+				overload_packet_process(buf, sizeof(SC_CREATE_OBJCET_PACKET), remain_packet);
 				break;
 			}
 
@@ -156,6 +159,17 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				players[other_id].SetIsActive(true);
 
 				overload_packet_process(buf, sizeof(SC_ADD_PLAYER_PACKET), remain_packet);
+				break;
+			}
+
+			case SC_LEAVE_PLAYER: {
+				SC_LEAVE_PLAYER_PACKET* packet = reinterpret_cast<SC_LEAVE_PLAYER_PACKET*>(buf);
+				int other_id = packet->id;
+				cout << other_id << " 플레이어 종료!" << endl;
+
+				players[other_id].SetIsActive(false);
+
+				overload_packet_process(buf, sizeof(SC_LEAVE_PLAYER_PACKET), remain_packet);
 				break;
 			}
 
@@ -174,6 +188,7 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				packet.type = CS_PLAYER_READY;
 				packet.id = id;
 
+				ZeroMemory(send_buf, BUF_SIZE);
 				memcpy(send_buf, &packet, sizeof(packet));
 
 				retval = send(sock, send_buf, sizeof(packet), 0);
@@ -231,6 +246,40 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				printf("%d 번 플레이어 x : %d, y : %d\n", other_id, packet->pos.x, packet->pos.y);
 
 				overload_packet_process(buf, sizeof(SC_MOVE_PACKET), remain_packet);
+				break;
+			}
+			
+			case SC_GAME_OVER: {
+				cout << "게임 종료" << endl;
+
+				SC_GAME_OVER_PACKET* packet = reinterpret_cast<SC_GAME_OVER_PACKET*>(buf);
+				
+				// 게임 종료시 점수를 마지막으로 받음
+				for (int i = 0; i < MAX_USER; ++i) {
+					if (i == id)
+						fish.SetScore(packet->scores[i]);
+					else
+						players[i].SetScore(packet->scores[i]);
+				}
+
+				CS_DISCONNECT_PACKET send_packet;
+				send_packet.type = CS_DISCONNECT;
+
+				ZeroMemory(send_buf, BUF_SIZE);
+				memcpy(send_buf, &send_packet, sizeof(send_packet));
+
+				// ---------------------------------
+				// 
+				//  게임 종료 화면으로 전환 필요
+				// 
+				// 
+				// ---------------------------------
+
+
+				retval = send(sock, send_buf, sizeof(send_packet), 0);
+				if (retval == SOCKET_ERROR) err_display("disconnect game()");
+
+				overload_packet_process(buf, sizeof(SC_GAME_OVER_PACKET), remain_packet);
 				break;
 			}
 

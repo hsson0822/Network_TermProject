@@ -1,11 +1,13 @@
 constexpr unsigned short PORT = 9000;
 constexpr int BUF_SIZE = 1024;
 
+constexpr int TIME_LIMIT = 180;
 constexpr int MAX_USER = 3;
 constexpr int MAX_OBJECT = 100;
 
 constexpr int SPAWN_WIDTH = 800;
 constexpr int SPAWN_HEIGHT = 600;
+
 
 // packet의 type 구분
 enum PacketType {
@@ -25,6 +27,8 @@ enum PacketType {
 	SC_ERASE_OBSTACLE,		// 서버 -> 클라		장애물 제거
 	CS_LOGIN,				// 클라 -> 서버		플레이어 접속
 	SC_LOGIN_OK,			// 서버 -> 클라		플레이어 접속 확인
+	SC_LEAVE_PLAYER,
+	CS_DISCONNECT
 };
 
 // 오브젝트 type 구분
@@ -49,6 +53,10 @@ enum PlayerMove {
 	DOWN_UP
 };
 
+struct client_info {
+	SOCKET sock;
+	int client_id;
+};
 
 // x,y 묶는 구조체
 struct position {
@@ -73,7 +81,8 @@ struct object_info_claculate {
 #pragma pack(push, 1)
 struct SC_CREATE_FOOD_PACKET
 {
-	ObjectType type;
+	char type;
+	object_info object;
 	int id;
 	position pos;
 };
@@ -129,6 +138,7 @@ struct SC_COLLISION_PACKET {
 
 struct SC_GAME_OVER_PACKET {
 	char type;
+	int scores[3];
 };
 
 struct SC_OBJECT_PACKET {
@@ -160,5 +170,14 @@ struct SC_CREATE_OBJCET_PACKET {
 struct SC_ERASE_OBJECT_PACKET {
 	char type;
 	int index;
+};
+
+struct SC_LEAVE_PLAYER_PACKET {
+	char type;
+	int id;
+};
+
+struct CS_DISCONNECT_PACKET {
+	char type;
 };
 #pragma pack(pop)

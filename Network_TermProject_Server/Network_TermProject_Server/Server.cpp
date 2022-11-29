@@ -2,6 +2,7 @@
 #include <WS2tcpip.h>
 #include <iostream>
 #include <array>
+#include <chrono>
 #include "protocol.h"
 
 #pragma comment(lib,"ws2_32")
@@ -18,18 +19,25 @@ public:
 	bool is_ready;
 	int id;			// 클라이언트 구분용 id
 	int speed;
+	int score;
 	SOCKET sock;
 	 
 public:
 	client() {
-		x = 0;
-		y = 0;
-		size = 0;
-		id = -1;
-		speed = 5;
-		is_ready = false;
+		Reset();
 	} 
 	~client() {}; 
+
+	void Reset() {
+		sock = 0;
+		x = 0;
+		y = 0;
+		size = 1;
+		id = -1;
+		speed = 5;
+		score = 0;
+		is_ready = false;
+	}
 
 	void SetX(short pos_x) { x = pos_x; }
 	void SetY(short pos_y) { y = pos_y; }
@@ -57,7 +65,8 @@ std::array<object_info, MAX_OBJECT> objects;	// 오브젝트 정 보가 담길 �
 int id = 0;
 CRITICAL_SECTION id_cs;
 CRITICAL_SECTION cs;
-BOOL c_flag = false;
+bool is_game_start = false;
+
 
 // 오류 검사용 함수
 void err_display(const char* msg)
@@ -89,36 +98,43 @@ void overload_packet_process(char* buf, int packet_size, int& remain_packet)
 	}
 }
 
-clock_t start, finish;
-double timeNow;
+chrono::system_clock::time_point start, current;
+int ms{};
 array<object_info_claculate, MAX_OBJECT> objects_calculate{};
 
 void makeFood()
 {
 
-	finish = clock();
-	timeNow = (double)(finish - start) / CLOCKS_PER_SEC;
-	if (timeNow > 3.0f)
+	current = chrono::system_clock::now();
+	ms = chrono::duration_cast<chrono::milliseconds>(current - start).count();
+	// 생성 후 지난 시간이 1500ms 를 넘으면 생성
+	if (ms > 1500)
 	{
+		for (const auto& c : clients)
+		{
+			if (c.id != -1)
+				cout << c.id << " 번 플레이어 좌표 x : " << c.GetX() << ", y : " << c.GetY() << endl;
+		}
 
-		int foodKinds = rand() % 3;
+
+		int foodKinds = rand() % 3 + 3;
 		short randX = rand() % 1800;
 		short randY = rand() % 1000;
 
-		cout << foodKinds << " ���̰� ������ x:" << randX << "  y:" << randY << endl;
+		cout << foodKinds << " 먹이 생성 x:" << randX << "  y:" << randY << endl;
 
 		SC_CREATE_OBJCET_PACKET packet;
 		packet.type = SC_CREATE_FOOD;
 		short col_x{}, col_y{};
 
-		if (foodKinds == 0)
+		if (foodKinds == CRAB)
 		{
 			//게
 			packet.object.type = CRAB;
 			col_x = 40;
 			col_y = 30;
 		}
-		else if (foodKinds == 1)
+		else if (foodKinds == SQUID)
 		{
 			//오징어
 			//foods.push_back(new Food(2, randX, randY, 47, 72, 10));
@@ -135,14 +151,14 @@ void makeFood()
 			col_y = 30;
 		}
 
-		start = clock();
-		timeNow = 0.0f;
+		start = chrono::system_clock::now();
 
 		packet.object.pos.x = randX;
 		packet.object.pos.y = randY;
 
 		for (auto& client : clients) {
-			client.send_packet(&packet, sizeof(SC_CREATE_OBJCET_PACKET));
+			if (client.id != -1)
+				client.send_packet(&packet, sizeof(SC_CREATE_OBJCET_PACKET));
 		}
 		cout << "========================" << endl;
 		for (object_info_claculate oic : objects_calculate)
@@ -161,44 +177,94 @@ void makeFood()
 	}
 
 }
+
 void makeObstacle()
 {
 }
 
 DWORD WINAPI CalculateThread(LPVOID arg)
 {
-	while (true)
+	auto start_time = chrono::system_clock::now();
+	chrono::system_clock::time_point current_time;
+	int duration{};
+	start = chrono::system_clock::now();
+	while (duration < TIME_LIMIT)
 	{
-		makeFood();
-		makeObstacle();
+			
+		// 플레이어가 한명이라도 있어야만 계산쓰레드가 작동하도록 함
+		if (id > 0) {
+			makeFood();
+			makeObstacle();
+		}
+		else
+			break;
+
+		// 시작한 시간부터 얼마나 흘렀는지 계산
+		// 이 값이 TIME_LIMIT 값보다 크면 시간 초과, 게임 종료
+		current_time = chrono::system_clock::now();
+		duration = chrono::duration_cast<chrono::seconds>(current_time - start_time).count();
+	}
+
+
+	// 종료 패킷 전송
+	SC_GAME_OVER_PACKET packet;
+	packet.type = SC_GAME_OVER;
+	for(int i = 0; i < MAX_USER; ++i)
+		packet.scores[i] = clients[i].score;
+
+	for (auto& c : clients) {
+		if (-1 == c.id) continue;
+
+		c.send_packet(&packet, sizeof(packet));
 	}
 
 	return 0;
+}
+
+void disconnect(int c_id)
+{
+	EnterCriticalSection(&id_cs);
+	--id;
+	LeaveCriticalSection(&id_cs);
+	clients[c_id].Reset();
+
+	SC_LEAVE_PLAYER_PACKET packet;
+	packet.type = SC_LEAVE_PLAYER;
+	packet.id = c_id;
+
+	for (client& c : clients) {
+		if (c_id == c.id) continue;
+		if (-1 == c.id) continue;
+
+		c.send_packet(&packet, sizeof(packet));
+	}
 }
 
 // 클라이언트 별 쓰레드 생성
 DWORD WINAPI RecvThread(LPVOID arg)
 {
 	int retval;
-	SOCKET client_socket = reinterpret_cast<SOCKET>(arg);
+	client_info* c_info = reinterpret_cast<client_info*>(arg);
+	SOCKET client_socket = c_info->sock;
+
+	int this_id = c_info->client_id;
+
+	if (id == MAX_USER)
+		is_game_start = true;
 
 	int len{};
 	char buf[BUF_SIZE];
 	char send_buf[BUF_SIZE];
 	int remain_packet{};
 
-	EnterCriticalSection(&id_cs);
-	int this_id = id++;
-	LeaveCriticalSection(&id_cs);
-
 	while (true) {
 		retval = recv(client_socket, buf, BUF_SIZE, 0);
 		if (SOCKET_ERROR == retval) {
-			err_display("file size recv()");
-			return 0;
+			err_display("recv()");
+			break;
 		}
 		else if (0 == retval) {
-			return 0;
+			break;
 		}
 
 		remain_packet = retval;
@@ -325,14 +391,21 @@ DWORD WINAPI RecvThread(LPVOID arg)
 					for (auto& client : clients)
 						client.send_packet(&packet, sizeof(SC_GAME_START_PACKET));
 
-						cout << "생성 성공" << endl;
-						// 계산스레드 생성
-						HANDLE hThread = CreateThread(nullptr, 0, CalculateThread,
-							reinterpret_cast<LPVOID>(client_socket), 0, nullptr);
+					cout << "생성 성공" << endl;
+					// 계산스레드 생성
+					HANDLE hThread = CreateThread(nullptr, 0, CalculateThread,
+						reinterpret_cast<LPVOID>(client_socket), 0, nullptr);
 				}
 
 				overload_packet_process(buf, sizeof(CS_READY_PACKET), remain_packet);
 				break;
+			}
+
+			case CS_DISCONNECT: {
+				cout << this_id << " 번 플레이어 게임 종료!\n";
+				disconnect(this_id);
+				closesocket(client_socket);
+				return 0;
 			}
 
 			}
@@ -343,6 +416,8 @@ DWORD WINAPI RecvThread(LPVOID arg)
 
 	}
 	// recv 종료
+
+	disconnect(this_id);
 
 	closesocket(client_socket);
 
@@ -401,14 +476,16 @@ int main(int argc, char* argv[])
 			break;
 		}
 
+		client_info c_info;
 		EnterCriticalSection(&id_cs);
 		clients[id].id = id;
 		clients[id].sock = client_socket;
+		c_info.client_id = id++;
 		LeaveCriticalSection(&id_cs);
-
+		c_info.sock = client_socket;
 		 
 		hThread = CreateThread(nullptr, 0, RecvThread,
-			reinterpret_cast<LPVOID>(client_socket), 0, nullptr);
+			reinterpret_cast<LPVOID>(&c_info), 0, nullptr);
 		if (!hThread)
 			closesocket(client_socket);
 		else
