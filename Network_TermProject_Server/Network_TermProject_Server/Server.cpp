@@ -17,6 +17,7 @@ private:
 
 public:
 	bool is_ready;
+	bool is_caught;
 	int id;			// 클라이언트 구분용 id
 	int speed;
 	int score;
@@ -37,6 +38,7 @@ public:
 		speed = 5;
 		score = 0;
 		is_ready = false;
+		is_caught = false;
 	}
 
 	void SetX(short pos_x) { x = pos_x; }
@@ -249,6 +251,8 @@ void makeObstacle()
 			}
 		}
 	}
+}
+
 void updateObjects()
 {
 	for (object_info_claculate oic : objects_calculate)
@@ -259,14 +263,28 @@ void updateObjects()
 			{
 			case NET:
 			{
+				oic.object_info.pos.y += 10;
+				if (oic.object_info.pos.y >= 900)
+					oic.is_active = false;
 				break;
 			}
 			case SHARK:
 			{
+				oic.object_info.pos.x += 10;
+				if (oic.object_info.pos.x >= 1800)
+					oic.is_active = false;
 				break;
 			}
 			case HOOK:
 			{
+				if (!oic.b_hook)
+					oic.object_info.pos.y += 5;
+				else if (!oic.b_hook && oic.object_info.pos.y >= 300)
+					oic.b_hook = true;
+				else if (oic.b_hook)
+					oic.object_info.pos.y -= 5;
+				else if (oic.object_info.pos.y < -10)
+					oic.is_active = false;
 				break;
 			}
 			case CRAB:
@@ -286,6 +304,7 @@ void updateObjects()
 		}
 	}
 }
+
 void collisionObjectPlayer()
 {
 	for (object_info_claculate oic : objects_calculate)
@@ -338,6 +357,8 @@ DWORD WINAPI CalculateThread(LPVOID arg)
 		if (id > 0) {
 			makeFood();
 			makeObstacle();
+			updateObjects();
+			collisionObjectPlayer();
 		}
 		else
 			break;
