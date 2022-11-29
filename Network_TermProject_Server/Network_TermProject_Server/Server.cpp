@@ -275,7 +275,7 @@ void updateObjects()
 			}
 			case SHARK:
 			{
-				oic.object_info.pos.x += 10;
+				oic.object_info.pos.x += 7;
 				if (oic.object_info.pos.x >= 1800)
 					oic.is_active = false;
 				break;
@@ -293,18 +293,14 @@ void updateObjects()
 				break;
 			}
 			case CRAB:
-			{
-				break;
-			}
 			case SQUID:
-			{
-				break;
-			}
 			case JELLYFISH:
 			{
+				oic.object_info.pos.y += 4;
+				if (oic.object_info.pos.y > 900)
+					oic.is_active = false;
 				break;
 			}
-
 			}
 		}
 	}
