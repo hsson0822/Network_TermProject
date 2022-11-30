@@ -283,10 +283,10 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				isReady = false;
 				isGameStart = true;
 				overload_packet_process(buf, sizeof(SC_GAME_START_PACKET), remain_packet);
-				SetTimer(hWnd, 2, 70, NULL);	// 먹이 낙하
+				//SetTimer(hWnd, 2, 70, NULL);	// 먹이 낙하
 				SetTimer(hWnd, 3, 70, NULL);	// 물고기 이동 / 먹이 섭취
 				//SetTimer(hWnd, 4, 30000, NULL);	// 이벤트 생성 30초
-				SetTimer(hWnd, 5, 70, NULL);	// 이벤트 진행
+				//SetTimer(hWnd, 5, 70, NULL);	// 이벤트 진행
 
 				break;
 			}
@@ -427,7 +427,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	static int eventClick;
 	static BOOL eventOut;
 
-	
+
 
 	static HBITMAP playButton;
 	static RECT playButtonRect;
@@ -886,35 +886,35 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				if (fish.getMoveDir() == 0)
 				{
 					//왼쪽
-					fish.setRect(RECT{ fish.getRect().left - fishSpeed,fish.getRect().top, fish.getRect().right - fishSpeed, fish.getRect().bottom });
+					fish.setRect(RECT{ fish.getRect().left,fish.getRect().top, fish.getRect().right, fish.getRect().bottom });
 					if (fish.getRect().left < rect.left)
-						fish.setRect(RECT{ fish.getRect().left + fishSpeed,fish.getRect().top, fish.getRect().right + fishSpeed, fish.getRect().bottom });
+						fish.setRect(RECT{ fish.getRect().left,fish.getRect().top, fish.getRect().right, fish.getRect().bottom });
 				}
 				else if (fish.getMoveDir() == 1)
 				{
 					//오른쪽
-					fish.setRect(RECT{ fish.getRect().left + fishSpeed,fish.getRect().top, fish.getRect().right + fishSpeed, fish.getRect().bottom });
+					fish.setRect(RECT{ fish.getRect().left,fish.getRect().top, fish.getRect().right, fish.getRect().bottom });
 					if (fish.getRect().right > rect.right)
-						fish.setRect(RECT{ fish.getRect().left - fishSpeed,fish.getRect().top, fish.getRect().right - fishSpeed, fish.getRect().bottom });
+						fish.setRect(RECT{ fish.getRect().left,fish.getRect().top, fish.getRect().right, fish.getRect().bottom });
 				}
 				else if (fish.getMoveDir() == 2)
 				{
 					//위
-					fish.setRect(RECT{ fish.getRect().left,fish.getRect().top - fishSpeed, fish.getRect().right, fish.getRect().bottom - fishSpeed });
+					fish.setRect(RECT{ fish.getRect().left,fish.getRect().top, fish.getRect().right, fish.getRect().bottom });
 					if (fish.getRect().top < rect.top)
-						fish.setRect(RECT{ fish.getRect().left,fish.getRect().top + fishSpeed, fish.getRect().right, fish.getRect().bottom + fishSpeed });
+						fish.setRect(RECT{ fish.getRect().left,fish.getRect().top, fish.getRect().right, fish.getRect().bottom });
 				}
 				else if (fish.getMoveDir() == 3)
 				{
 					//아래
-					fish.setRect(RECT{ fish.getRect().left,fish.getRect().top + fishSpeed, fish.getRect().right, fish.getRect().bottom + fishSpeed });
+					fish.setRect(RECT{ fish.getRect().left,fish.getRect().top, fish.getRect().right, fish.getRect().bottom });
 					if (fish.getRect().bottom > rect.bottom - 80)
-						fish.setRect(RECT{ fish.getRect().left,fish.getRect().top - fishSpeed, fish.getRect().right, fish.getRect().bottom - fishSpeed });
+						fish.setRect(RECT{ fish.getRect().left,fish.getRect().top, fish.getRect().right, fish.getRect().bottom });
 				}
 			}
 			else
 			{
-				if (eventNum == 0)
+				/*if (eventNum == 0)
 				{
 					if (netDir == 0)
 					{
@@ -936,44 +936,45 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					else
 						fish.setRect(RECT{ fish.getRect().left - 7,fish.getRect().top, fish.getRect().right - 7, fish.getRect().bottom });
 				}
-			}
+			}*/
 
-			if (!caught)
-			{
-				for (vector<Food*>::iterator iter = foods.begin(); iter != foods.end(); ++iter)
+				if (!caught)
 				{
-					RECT temp;
-					RECT fishRect = RECT{ fish.getRect().left, fish.getRect().top + (fish.getHeight() / 10 * 2), fish.getRect().right, fish.getRect().bottom - (fish.getHeight() / 10 * 2) };
-					RECT foodRect = RECT{ (*iter)->getX(),(*iter)->getY(),(*iter)->getX() + (*iter)->getWidth(),(*iter)->getY() + (*iter)->getHeight() };
-					if (IntersectRect(&temp, &fishRect, &foodRect))
+					/*for (vector<Food*>::iterator iter = foods.begin(); iter != foods.end(); ++iter)
 					{
-						iter = foods.erase(iter);
-						--foodCount;
-						fish.setExp(fish.getExp() + foodExp);
+						RECT temp;
+						RECT fishRect = RECT{ fish.getRect().left, fish.getRect().top + (fish.getHeight() / 10 * 2), fish.getRect().right, fish.getRect().bottom - (fish.getHeight() / 10 * 2) };
+						RECT foodRect = RECT{ (*iter)->getX(),(*iter)->getY(),(*iter)->getX() + (*iter)->getWidth(),(*iter)->getY() + (*iter)->getHeight() };
+						if (IntersectRect(&temp, &fishRect, &foodRect))
+						{
+							iter = foods.erase(iter);
+							--foodCount;
+							fish.setExp(fish.getExp() + foodExp);
 
-						if (fish.getExp() > fish.getMaxExp())
-							fish.addAge();
+							if (fish.getExp() > fish.getMaxExp())
+								fish.addAge();
+						}
+
+						if (iter == foods.end())
+							break;
+					}*/
+
+					// 클리어
+					if (fish.getAge() >= 30) {
+						KillTimer(hWnd, 1);
+						KillTimer(hWnd, 2);
+						KillTimer(hWnd, 3);
+						KillTimer(hWnd, 4);
+						KillTimer(hWnd, 5);
+						MessageBox(hWnd, L"개복치가 성장이 완료되었습니다!", L"Congratulations", MB_OK);
+						PlaySound(NULL, NULL, NULL);
+						PostQuitMessage(0);
 					}
-
-					if (iter == foods.end())
-						break;
 				}
-				// 클리어
-				if (fish.getAge() >= 30) {
-					KillTimer(hWnd, 1);
-					KillTimer(hWnd, 2);
-					KillTimer(hWnd, 3);
-					KillTimer(hWnd, 4);
-					KillTimer(hWnd, 5);
-					MessageBox(hWnd, L"개복치가 성장이 완료되었습니다!", L"Congratulations", MB_OK);
-					PlaySound(NULL, NULL, NULL);
-					PostQuitMessage(0);
-				}
-			}
 
-			break;
+				break;
 
-			// 이벤트 생성
+				// 이벤트 생성
 		case 4:
 			//eventNum = rand() % 3;
 			//eventClick = 0;
@@ -1014,79 +1015,82 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		case 5:
 			switch (eventNum)
 			{
-				//그물
-			case 0:
-				if (netDir == 0)
-				{
-					netRect = { netRect.left + 10, netRect.top, netRect.right + 10,netRect.bottom };
-				}
-				else
-				{
-					netRect = { netRect.left - 10, netRect.top, netRect.right - 10,netRect.bottom };
-				}
-
-				if (!caught && !eventOut)
-				{
-					RECT temp;
-					RECT fishRect = RECT{ fish.getRect().left, fish.getRect().top + (fish.getHeight() / 10 * 2), fish.getRect().right, fish.getRect().bottom - (fish.getHeight() / 10 * 2) };
-					if (IntersectRect(&temp, &netRect, &fishRect))
+				/*
+					//그물
+				case 0:
+					if (netDir == 0)
 					{
-						caught = true;
+						//netRect = { netRect.left + 10, netRect.top, netRect.right + 10,netRect.bottom };
+						netRect = { netRect.left, netRect.top, netRect.right,netRect.bottom };
 					}
-				}
-				break;
-
-				//낚시 바늘
-			case 1:
-				if (hookCount < 60)
-				{
-					hookRect = { hookRect.left,hookRect.top + 5 ,hookRect.right, hookRect.bottom + 5 };
-				}
-				else if (hookCount > 200)
-				{
-					hookRect = { hookRect.left,hookRect.top - 5 ,hookRect.right,hookRect.bottom - 5 };
-				}
-				++hookCount;
-
-				if (!caught && !eventOut)
-				{
-					RECT temp;
-					RECT fishRect = RECT{ fish.getRect().left, fish.getRect().top + (fish.getHeight() / 10 * 2), fish.getRect().right, fish.getRect().bottom - (fish.getHeight() / 10 * 2) };
-					RECT hookR = RECT{ hookRect.left,hookRect.top + 240,hookRect.right - 40,hookRect.bottom };
-					if (IntersectRect(&temp, &hookR, &fishRect))
+					else
 					{
-						caught = true;
-						hookCount = 201;
+						//netRect = { netRect.left - 10, netRect.top, netRect.right - 10,netRect.bottom };
+						netRect = { netRect.left, netRect.top, netRect.right,netRect.bottom };
 					}
-				}
-				break;
 
-				//상어
-			case 2:
-				if (sharkDir == 0)
-				{
-					sharkRect = { sharkRect.left + 7, sharkRect.top, sharkRect.right + 7,sharkRect.bottom };
-				}
-				else
-				{
-					sharkRect = { sharkRect.left - 7, sharkRect.top, sharkRect.right - 7,sharkRect.bottom };
-				}
+					if (!caught && !eventOut)
+					{
+						RECT temp;
+						RECT fishRect = RECT{ fish.getRect().left, fish.getRect().top + (fish.getHeight() / 10 * 2), fish.getRect().right, fish.getRect().bottom - (fish.getHeight() / 10 * 2) };
+						if (IntersectRect(&temp, &netRect, &fishRect))
+						{
+							caught = true;
+						}
+					}
+					break;
 
-				/*++sharkWave;
-				if (sharkWave < 12)
-				{
-					sharkRect = { sharkRect.left, sharkRect.top + 2, sharkRect.right,sharkRect.bottom + 2 };
-					if (caught)
-						fish.setRect(RECT{ fish.getRect().left,fish.getRect().top + 2, fish.getRect().right, fish.getRect().bottom + 2 });
-				}
-				else if (sharkWave < 24)
-				{
-					sharkRect = { sharkRect.left, sharkRect.top - 2, sharkRect.right,sharkRect.bottom - 2 };
-					if (caught)
-						fish.setRect(RECT{ fish.getRect().left,fish.getRect().top - 2, fish.getRect().right, fish.getRect().bottom - 2 });
-				}
-				else
-					sharkWave = 0;*/
+					//낚시 바늘
+				case 1:
+					if (hookCount < 60)
+					{
+						hookRect = { hookRect.left,hookRect.top + 5 ,hookRect.right, hookRect.bottom + 5 };
+					}
+					else if (hookCount >= 60)
+					{
+						hookRect = { hookRect.left,hookRect.top - 5 ,hookRect.right,hookRect.bottom - 5 };
+					}
+					++hookCount;
+
+					if (!caught && !eventOut)
+					{
+						RECT temp;
+						RECT fishRect = RECT{ fish.getRect().left, fish.getRect().top + (fish.getHeight() / 10 * 2), fish.getRect().right, fish.getRect().bottom - (fish.getHeight() / 10 * 2) };
+						RECT hookR = RECT{ hookRect.left,hookRect.top + 240,hookRect.right - 40,hookRect.bottom };
+						if (IntersectRect(&temp, &hookR, &fishRect))
+						{
+							caught = true;
+							hookCount = 201;
+						}
+					}
+					break;
+
+					//상어
+				case 2:
+					if (sharkDir == 0)
+					{
+						sharkRect = { sharkRect.left + 7, sharkRect.top, sharkRect.right + 7,sharkRect.bottom };
+					}
+					else
+					{
+						sharkRect = { sharkRect.left - 7, sharkRect.top, sharkRect.right - 7,sharkRect.bottom };
+					}
+
+					++sharkWave;
+					if (sharkWave < 12)
+					{
+						sharkRect = { sharkRect.left, sharkRect.top + 2, sharkRect.right,sharkRect.bottom + 2 };
+						if (caught)
+							fish.setRect(RECT{ fish.getRect().left,fish.getRect().top + 2, fish.getRect().right, fish.getRect().bottom + 2 });
+					}
+					else if (sharkWave < 24)
+					{
+						sharkRect = { sharkRect.left, sharkRect.top - 2, sharkRect.right,sharkRect.bottom - 2 };
+						if (caught)
+							fish.setRect(RECT{ fish.getRect().left,fish.getRect().top - 2, fish.getRect().right, fish.getRect().bottom - 2 });
+					}
+					else
+						sharkWave = 0;*/
 
 				if (!caught && !eventOut)
 				{
@@ -1100,32 +1104,33 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				break;
 			}
 			break;
-		case 7:
-			if (foodCount < foodMax)
-			{
-				foodKinds = rand() % 3;
-				randX = rand() % rect.right;
-				randY = rand() % rect.bottom;
-				if (foodKinds == 0)
-				{
-					//해파리
-					foods.push_back(new Food(0, randX, randY, 27, 30, 4));
-				}
-				else if (foodKinds == 1)
-				{
-					//게
-					foods.push_back(new Food(1, randX, randY, 85, 61, 2));
-				}
-				else
-				{
-					//오징어
-					foods.push_back(new Food(2, randX, randY, 47, 72, 10));
-				}
+			//case 7:
+			//	if (foodCount < foodMax)
+			//	{
+			//		foodKinds = rand() % 3;
+			//		randX = rand() % rect.right;
+			//		randY = rand() % rect.bottom;
+			//		if (foodKinds == 0)
+			//		{
+			//			//해파리
+			//			foods.push_back(new Food(0, randX, randY, 27, 30, 4));
+			//		}
+			//		else if (foodKinds == 1)
+			//		{
+			//			//게
+			//			foods.push_back(new Food(1, randX, randY, 85, 61, 2));
+			//		}
+			//		else
+			//		{
+			//			//오징어
+			//			foods.push_back(new Food(2, randX, randY, 47, 72, 10));
+			//		}
 
 
-				++foodCount;
+			//		++foodCount;
+			//	}
+			//	break;
 			}
-			break;
 		}
 		break;
 
