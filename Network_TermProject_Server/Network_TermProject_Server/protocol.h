@@ -7,6 +7,9 @@ constexpr int MAX_OBJECT = 100;
 
 constexpr int SPAWN_WIDTH = 800;
 constexpr int SPAWN_HEIGHT = 600;
+#define WINDOWWIDTH 1800
+#define WINDOWHEIGHT 900
+
 
 
 // packet의 type 구분
@@ -67,7 +70,7 @@ struct position {
 // 오브젝트들의 정보가 담김
 struct object_info {
 	position pos;		// 오브젝트 좌표
-	char type;		// 오브젝트 종류
+	char type = -1;		// 오브젝트 종류
 };
 
 struct object_info_claculate {
@@ -76,7 +79,6 @@ struct object_info_claculate {
 	short collision_box_x, collision_box_y;
 	bool b_hook = false;
 };
-
 // 서버 -> 클라 패킷의 id 는 클라이언트 구분용 id
 
 #pragma pack(push, 1)
