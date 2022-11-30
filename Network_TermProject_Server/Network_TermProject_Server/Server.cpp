@@ -13,7 +13,7 @@ using namespace std;
 class client {
 private:
 	short x, y;		// x,y 좌표
-	short size;		// 물고기 크기
+	short width, height;		// 물고기 크기
 
 public:
 	bool is_ready;
@@ -22,6 +22,7 @@ public:
 	int speed;
 	int score;
 	SOCKET sock;
+
 	 
 public:
 	client() {
@@ -33,7 +34,8 @@ public:
 		sock = 0;
 		x = 0;
 		y = 0;
-		size = 1;
+		width = 120;
+		height = 140;
 		id = -1;
 		speed = 5;
 		score = 0;
@@ -47,7 +49,8 @@ public:
 
 	short GetX() const { return x; };
 	short GetY() const { return y; };
-	short GetSize() const { return size; }
+	short GetWidth() const { return width; }
+	short GetHeight() const { return height; }
 
 	void send_packet(void* packet, int size) {
 		char send_buf[BUF_SIZE];
@@ -268,28 +271,37 @@ void updateObjects()
 			{
 			case NET:
 			{
-				oic.object_info.pos.y += 10;
-				if (oic.object_info.pos.y >= 900)
+				oic.object_info.pos.x += 10;
+				if (oic.object_info.pos.x >= WINDOWWIDTH)
+				{
 					oic.is_active = false;
+					oic.object_info.type = -1;
+				}
 				break;
 			}
 			case SHARK:
 			{
 				oic.object_info.pos.x += 7;
-				if (oic.object_info.pos.x >= 1800)
+				if (oic.object_info.pos.x >= WINDOWWIDTH)
+				{
 					oic.is_active = false;
+					oic.object_info.type = -1;
+				}
 				break;
 			}
 			case HOOK:
 			{
 				if (!oic.b_hook)
 					oic.object_info.pos.y += 5;
-				else if (!oic.b_hook && oic.object_info.pos.y >= 300)
+				else if (!oic.b_hook && oic.object_info.pos.y >= oic.collision_box_y)
 					oic.b_hook = true;
 				else if (oic.b_hook)
 					oic.object_info.pos.y -= 5;
 				else if (oic.object_info.pos.y < -10)
+				{
 					oic.is_active = false;
+					oic.object_info.type = -1;
+				}
 				break;
 			}
 			case CRAB:
@@ -297,9 +309,16 @@ void updateObjects()
 			case JELLYFISH:
 			{
 				oic.object_info.pos.y += 4;
-				if (oic.object_info.pos.y > 900)
+				if (oic.object_info.pos.y > WINDOWHEIGHT)
+				{
 					oic.is_active = false;
+					oic.object_info.type = -1;
+				}
 				break;
+			}
+		default:
+			{
+			break;
 			}
 			}
 		}
@@ -334,6 +353,10 @@ void progress_Collision(client &client, object_info_claculate &oic)
 	{
 		break;
 	}
+	default:
+	{
+		break;
+	}
 	}
 }
 
@@ -341,18 +364,20 @@ void collisionObjectPlayer()
 {
 	for (client client : clients)
 	{
-		RECT tmp{};
-		RECT playerRect = RECT{ };
-		for (object_info_claculate oic : objects_calculate)
+		if (client.id != -1)
 		{
-			if (oic.is_active)
+			RECT tmp{};
+			RECT playerRect = RECT{ client.GetX(), client.GetY(), client.GetX() + client.GetWidth(), client.GetY() + client.GetHeight() };
+			for (object_info_claculate oic : objects_calculate)
 			{
-				RECT objectRect = RECT{ };
-				if (IntersectRect(&tmp, &playerRect, &objectRect))
-					progress_Collision(client, oic);
+				if (oic.is_active)
+				{
+					RECT objectRect = RECT{ oic.object_info.x, oic.object_info.y, oic.object_info.x + oic.collision_x, oic.object_info.y + oic.collision_y };
+					if (IntersectRect(&tmp, &playerRect, &objectRect))
+						progress_Collision(client, oic);
+				}
 			}
 		}
-
 	}
 }
 
