@@ -121,7 +121,6 @@ void makeFood()
 				cout << c.id << " 번 플레이어 좌표 x : " << c.GetX() << ", y : " << c.GetY() << endl;
 		}
 
-
 		int foodKinds = rand() % 3 + 3;
 		short randX = rand() % 1800;
 		short randY = rand() % 1000;
@@ -161,12 +160,8 @@ void makeFood()
 		packet.object.pos.x = randX;
 		packet.object.pos.y = randY;
 
-		for (auto& client : clients) {
-			if (client.id != -1)
-				client.send_packet(&packet, sizeof(SC_CREATE_OBJCET_PACKET));
-		}
-		cout << "========================" << endl;
-		for (object_info_claculate oic : objects_calculate)
+
+		for (object_info_claculate& oic : objects_calculate)
 		{
 			if (!oic.is_active)
 			{
@@ -179,6 +174,13 @@ void makeFood()
 				break;
 			}
 		}
+		packet.index = id_oic;
+
+		for (auto& client : clients) {
+			if (client.id != -1)
+				client.send_packet(&packet, sizeof(SC_CREATE_OBJCET_PACKET));
+		}
+		cout << "========================" << endl;
 	}
 
 }
@@ -241,11 +243,7 @@ void makeObstacle()
 		packet.object.pos.x = randX;
 		packet.object.pos.y = randY;
 
-		for (auto& client : clients) {
-			client.send_packet(&packet, sizeof(SC_CREATE_OBJCET_PACKET));
-		}
-
-		for (object_info_claculate oic : objects_calculate)
+		for (object_info_claculate& oic : objects_calculate)
 		{
 			if (!oic.is_active)
 			{
@@ -258,12 +256,17 @@ void makeObstacle()
 				break;
 			}
 		}
+		packet.index = id_oic;
+
+		for (auto& client : clients) {
+			client.send_packet(&packet, sizeof(SC_CREATE_OBJCET_PACKET));
+		}
 	}
 }
 
 void updateObjects()
 {
-	for (object_info_claculate oic : objects_calculate)
+	for (object_info_claculate& oic : objects_calculate)
 	{
 		if (oic.is_active)
 		{
@@ -331,26 +334,37 @@ void progress_Collision(client &client, object_info_claculate &oic)
 	{
 	case NET:
 	{
+		cout << "충돌 : " << client.id << "번 플레이어, 그물" << endl;
 		break;
 	}
 	case SHARK:
 	{
+		cout << "충돌 : " << client.id << "번 플레이어, 상어" << endl;
+
 		break;
 	}
 	case HOOK:
 	{
+		cout << "충돌 : " << client.id << "번 플레이어, 바늘" << endl;
+
 		break;
 	}
 	case CRAB:
 	{
+		cout << "충돌 : " << client.id << "번 플레이어, 게" << endl;
+
 		break;
 	}
 	case SQUID:
 	{
+		cout << "충돌 : " << client.id << "번 플레이어, 오징어" << endl;
+
 		break;
 	}
 	case JELLYFISH:
 	{
+		cout << "충돌 : " << client.id << "번 플레이어, 해파리" << endl;
+
 		break;
 	}
 	default:
@@ -381,9 +395,9 @@ void collisionObjectPlayer()
 	}
 }
 
-void SendPlayerPositionPacket()
+/*void SendPlayerPositionPacket()
 {
-	for (client client : clients)
+	for (auto& client : clients)
 	{
 		if (client.id == -1)
 			continue;
@@ -393,10 +407,10 @@ void SendPlayerPositionPacket()
 		packet.pos.x = client.GetX();
 		packet.pos.y = client.GetY();
 		
-		client.send_packet(&packet, sizeof(packet));
+		client.send_packet(&packet, sizeof(SC_MOVE_PACKET));
 	}
 	
-}
+}*/
 
 DWORD WINAPI CalculateThread(LPVOID arg)
 {
