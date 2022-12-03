@@ -372,13 +372,30 @@ void collisionObjectPlayer()
 			{
 				if (oic.is_active)
 				{
-					RECT objectRect = RECT{ oic.object_info.x, oic.object_info.y, oic.object_info.x + oic.collision_x, oic.object_info.y + oic.collision_y };
+					RECT objectRect = RECT{ oic.object_info.pos.x, oic.object_info.pos.y, oic.object_info.pos.x + oic.collision_box_x, oic.object_info.pos.y + oic.collision_box_y };
 					if (IntersectRect(&tmp, &playerRect, &objectRect))
 						progress_Collision(client, oic);
 				}
 			}
 		}
 	}
+}
+
+void SendPlayerPositionPacket()
+{
+	for (client client : clients)
+	{
+		if (client.id == -1)
+			continue;
+		SC_MOVE_PACKET packet;
+		packet.id = client.id;
+		packet.type = SC_PLAYER_MOVE;
+		packet.pos.x = client.GetX();
+		packet.pos.y = client.GetY();
+		
+		client.send_packet(&packet, sizeof(packet));
+	}
+	
 }
 
 DWORD WINAPI CalculateThread(LPVOID arg)
@@ -397,6 +414,7 @@ DWORD WINAPI CalculateThread(LPVOID arg)
 			makeObstacle();
 			updateObjects();
 			collisionObjectPlayer();
+			//SendPlayerPositionPacket();
 		}
 		else
 			break;
@@ -592,8 +610,6 @@ DWORD WINAPI RecvThread(LPVOID arg)
 					}
 					for (auto& client : clients)
 						client.send_packet(&packet, sizeof(SC_GAME_START_PACKET));
-
-					cout << "생성 성공" << endl;
 					// 계산스레드 생성
 					HANDLE hThread = CreateThread(nullptr, 0, CalculateThread,
 						reinterpret_cast<LPVOID>(client_socket), 0, nullptr);
