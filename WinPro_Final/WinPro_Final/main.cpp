@@ -491,7 +491,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 		foodExp = 25;
 
-		PlaySound(L"Aquarium.wav", NULL, SND_ASYNC | SND_LOOP);
+		//PlaySound(L"Aquarium.wav", NULL, SND_ASYNC | SND_LOOP);
 
 		SetTimer(hWnd, 1, 70, NULL);	// 기본
 
