@@ -142,38 +142,38 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				SC_CREATE_OBJCET_PACKET* packet = reinterpret_cast<SC_CREATE_OBJCET_PACKET*>(buf);
 
 				eventNum = packet->object.type;
-				//short x = packet->object.pos.x;
-				//short y = packet->object.pos.y;
+				short x = packet->object.pos.x;
+				short y = packet->object.pos.y;
+
 
 				switch (eventNum)
 				{
-				case 0:
+				case NET:
 					netDir = rand() % 2;
+
 					if (netDir == 0)
-					{
-						netRect = { rect.left - 200, rect.top, rect.left, rect.top + 400 };
-					}
+						netRect = { x - 200, y, x, y + 400 };
 					else
-					{
-						netRect = { rect.right, rect.top, rect.right + 200, rect.top + 400 };
-					}
+						netRect = { x, y, x + 200, y + 400 };
+
 					cout << "그물" << endl;
 					break;
 
-				case 1:
-					hookX = rand() % rect.right;
+				case HOOK:
 					hookCount = 0;
-					hookRect = { hookX,-300,hookX + 100,0 };
+					hookRect = { x, y, x + 100, y + 300 };
+
 					cout << "바늘" << endl;
 					break;
 
-				case 2:
+				case SHARK:
 					sharkDir = rand() % 2;
-					sharkY = rand() % rect.bottom;
+
 					if (sharkDir == 0)
-						sharkRect = { rect.left - 200, sharkY,rect.left,sharkY + 100 };
+						sharkRect = { x - 200, y, x, y + 100 };
 					else
-						sharkRect = { rect.right, sharkY,rect.right + 200,sharkY + 100 };
+						sharkRect = { x, y, x + 200, y + 100 };
+
 					cout << "상어" << endl;
 					break;
 				}

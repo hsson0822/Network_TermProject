@@ -37,8 +37,8 @@ enum PacketType {
 // 오브젝트 type 구분
 enum ObjectType {
 	NET,
-	SHARK,
 	HOOK,
+	SHARK,
 	CRAB,
 	SQUID,
 	JELLYFISH

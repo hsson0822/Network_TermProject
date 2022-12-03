@@ -227,7 +227,7 @@ void makeObstacle()
 			randX = rand() % 1800;
 			randY = 0;
 			col_x = 100;
-			col_y = 300;
+			col_y = -300;
 		}
 		else
 		{
