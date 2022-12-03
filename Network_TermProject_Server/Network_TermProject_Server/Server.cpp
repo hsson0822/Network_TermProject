@@ -72,7 +72,6 @@ CRITICAL_SECTION id_cs;
 CRITICAL_SECTION cs;
 bool is_game_start = false;
 
-
 // 오류 검사용 함수
 void err_display(const char* msg)
 {
@@ -106,7 +105,7 @@ void overload_packet_process(char* buf, int packet_size, int& remain_packet)
 chrono::system_clock::time_point foodStart, foodCurrent;
 int foodMs{};
 array<object_info_claculate, MAX_OBJECT> objects_calculate{};
-
+int id_oic = -1;
 void makeFood()
 {
 
@@ -163,8 +162,11 @@ void makeFood()
 
 		for (object_info_claculate& oic : objects_calculate)
 		{
+			cout << id_oic << endl;
 			if (!oic.is_active)
 			{
+				id_oic++;
+				oic.object_info.id = id_oic;
 				oic.is_active = true;
 				oic.object_info.type = packet.object.type;
 				oic.object_info.pos.x = packet.object.pos.x;
@@ -247,6 +249,8 @@ void makeObstacle()
 		{
 			if (!oic.is_active)
 			{
+				id_oic++;
+				oic.object_info.id = id_oic;
 				oic.is_active = true;
 				oic.object_info.type = packet.object.type;
 				oic.object_info.pos.x = packet.object.pos.x;

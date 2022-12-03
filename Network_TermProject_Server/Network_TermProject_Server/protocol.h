@@ -71,6 +71,7 @@ struct position {
 struct object_info {
 	position pos;		// 오브젝트 좌표
 	char type = -1;		// 오브젝트 종류
+	int id = -1;
 };
 
 struct object_info_claculate {

@@ -8,12 +8,16 @@ class Food
 	int height;
 	int moveCount;
 	int maxAnimCount;
+	int id;
 
 public:
-	Food(int k,int x, int y,int w, int h, int max);
+	Food(int k,int x, int y,int w, int h, int max, int id);
 
 	int getX();
 	void setX(int x);
+
+	int getId();
+	void setId(int i);
 
 	int getY();
 	void setY(int y);

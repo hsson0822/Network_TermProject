@@ -191,18 +191,18 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				short y = packet->object.pos.y;
 				switch (packet->object.type) {
 				case JELLYFISH:
-					foods.push_back(new Food(0, x, y, 27, 30, 4));
-					cout << "해파리" << endl;
+					foods.push_back(new Food(0, x, y, 27, 30, 4, packet->index));
+					cout << "해파리, " << packet->index << endl;
 					break;
 
 				case CRAB:
-					foods.push_back(new Food(1, x, y, 85, 61, 2));
-					cout << "게" << endl;
+					foods.push_back(new Food(1, x, y, 85, 61, 2, packet->index));
+					cout << "게, " << packet->index << endl;
 					break;
 
 				case SQUID:
-					foods.push_back(new Food(2, x, y, 47, 72, 10));
-					cout << "오징어" << endl;
+					foods.push_back(new Food(2, x, y, 47, 72, 10, packet->index));
+					cout << "오징어, " << packet->index << endl;
 					break;
 
 				}
