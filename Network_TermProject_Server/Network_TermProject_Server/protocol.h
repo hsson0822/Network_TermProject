@@ -9,8 +9,8 @@ constexpr int SPAWN_WIDTH = 800;
 constexpr int SPAWN_HEIGHT = 600;
 #define WINDOWWIDTH 1800
 #define WINDOWHEIGHT 900
-
-
+#define OBSTACLE_SCORE 10
+#define MAX_LIFE 50
 
 // packet의 type 구분
 enum PacketType {
@@ -31,7 +31,7 @@ enum PacketType {
 	CS_LOGIN,				// 클라 -> 서버		플레이어 접속
 	SC_LOGIN_OK,			// 서버 -> 클라		플레이어 접속 확인
 	SC_LEAVE_PLAYER,
-	CS_DISCONNECT
+	CS_DISCONNECT,
 };
 
 // 오브젝트 type 구분
@@ -54,6 +54,13 @@ enum PlayerMove {
 	RIGHT_UP,
 	UP_UP,
 	DOWN_UP
+};
+
+enum FoodScore {
+	ZERO,
+	CRAB_SCORE,
+	SQUID_SCORE,
+	JELLYFISH_SCORE
 };
 
 struct client_info {
@@ -79,6 +86,7 @@ struct object_info_claculate {
 	bool is_active = false;
 	short collision_box_x, collision_box_y;
 	bool b_hook = false;
+	int life = -1;
 };
 // 서버 -> 클라 패킷의 id 는 클라이언트 구분용 id
 
@@ -113,7 +121,7 @@ struct CS_MOVE_PACKET {
 
 struct CS_CLICK_PACKET {
 	char type;
-	position pos;
+	POINT point;
 };
 
 struct SC_DEAD_PACKET {
@@ -174,6 +182,7 @@ struct SC_CREATE_OBJCET_PACKET {
 struct SC_ERASE_OBJECT_PACKET {
 	char type;
 	int index;
+	char object_type = -1;
 };
 
 struct SC_LEAVE_PLAYER_PACKET {
