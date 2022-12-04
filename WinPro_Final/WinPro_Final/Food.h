@@ -16,7 +16,7 @@ public:
 	int getX();
 	void setX(int x);
 
-	int getId();
+	int getId() const;
 	void setId(int i);
 
 	int getY();

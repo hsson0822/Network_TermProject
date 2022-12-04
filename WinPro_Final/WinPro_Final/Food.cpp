@@ -25,5 +25,5 @@ int Food::getMaxCount() { return maxAnimCount;}
 
 int Food::getFishKinds() { return fishKinds; }
 
-int Food::getId() { return id; }
+int Food::getId() const { return id; }
 void Food::setId(int i) { id = i; }

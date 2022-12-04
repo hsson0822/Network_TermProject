@@ -358,42 +358,110 @@ void updateObjects()
 	}
 }
 
-void progress_Collision(client &client, object_info_claculate &oic)
+void progress_Collision_pp(RECT tmp, client& cl_1, client& cl_2)
+{
+	if (cl_1.GetWidth() > cl_2.GetWidth())
+	{
+		// rect가 
+		//
+		if (cl_2.is_pulled)
+		{
+			for (client& cl_3 : clients)
+			{
+				if (cl_3.id != cl_1.id && cl_3.id != cl_2.id)
+				{
+					if (cl_3.GetWidth() > cl_1.GetWidth())
+					{
+
+					}
+					else if (cl_3.GetWidth() < cl_1.GetWidth())
+					{
+
+					}
+					else
+					{
+
+					}
+				}
+			}
+		}
+	}
+	else if (cl_1.GetWidth() < cl_2.GetWidth())
+	{
+		if (cl_1.is_pulled)
+		{
+			for (client& cl_3 : clients)
+			{
+				if (cl_3.id != cl_1.id && cl_3.id != cl_2.id)
+				{
+					if (cl_3.GetWidth() > cl_2.GetWidth())
+					{
+					}
+					else if (cl_3.GetWidth() < cl_2.GetWidth())
+					{
+
+					}
+					else
+					{
+
+					}
+				}
+			}
+		}
+	}
+	else
+	{
+
+	}
+}
+
+void progress_Collision_po(client &client, object_info_claculate &oic)
 {
 	switch (oic.object_info.type)
 	{
 	case NET:
-	{
-		cout << "충돌 : " << client.id << "번 플레이어, 그물 : " << oic.object_info.id << endl;
-		break;
-	}
 	case SHARK:
-	{
-		cout << "충돌 : " << client.id << "번 플레이어, 상어 : " << oic.object_info.id << endl;
-
-		break;
-	}
 	case HOOK:
 	{
-		cout << "충돌 : " << client.id << "번 플레이어, 바늘 : " << oic.object_info.id << endl;
+		cout << "충돌 : " << client.id << "번 플레이어, "<< oic.object_info.type << " : " << oic.object_info.id << endl;
+		client.is_caught = true;
+		client.score -= OBSTACLE_SCORE;
+		
+		for (auto& cl : clients)
+			cl.send_erase_object(oic);
 
 		break;
 	}
 	case CRAB:
 	{
 		cout << "충돌 : " << client.id << "번 플레이어, 게 : " << oic.object_info.id << endl;
+		client.score += CRAB_SCORE;
+		client.SetSize(CRAB_SCORE);
+		
+		for (auto& cl : clients)
+			cl.send_erase_object(oic);
 
 		break;
 	}
 	case SQUID:
 	{
 		cout << "충돌 : " << client.id << "번 플레이어, 오징어 : " << oic.object_info.id << endl;
+		client.score += SQUID_SCORE;
+		client.SetSize(SQUID_SCORE);
+		
+		for (auto& cl : clients)
+			cl.send_erase_object(oic);
 
 		break;
 	}
 	case JELLYFISH:
 	{
 		cout << "충돌 : " << client.id << "번 플레이어, 해파리" << endl;
+		client.score += JELLYFISH_SCORE;
+		client.SetSize(JELLYFISH_SCORE);
+		
+		for (auto& cl : clients)
+			cl.send_erase_object(oic);
 
 		break;
 	}
@@ -404,21 +472,42 @@ void progress_Collision(client &client, object_info_claculate &oic)
 	}
 }
 
-void collisionObjectPlayer()
+void progress_Collision_mo(object_info_claculate& oic)
 {
-	for (client client : clients)
+	if (--oic.life == -1)
 	{
-		if (client.id != -1)
+		oic.is_active = false;
+
+		for (auto& cl : clients)
+			cl.send_erase_object(oic);
+	}
+
+}
+
+void collision()
+{
+	for (client cl_1 : clients)
+	{
+		if (cl_1.id != -1 && !cl_1.is_caught)
 		{
 			RECT tmp{};
-			RECT playerRect = RECT{ client.GetX(), client.GetY(), client.GetX() + client.GetWidth(), client.GetY() + client.GetHeight() };
+			RECT playerRect_1 = RECT{ cl_1.GetX(), cl_1.GetY(), cl_1.GetX() + cl_1.GetWidth(), cl_1.GetY() + cl_1.GetHeight() };
 			for (object_info_claculate oic : objects_calculate)
 			{
 				if (oic.is_active)
 				{
 					RECT objectRect = RECT{ oic.object_info.pos.x, oic.object_info.pos.y, oic.object_info.pos.x + oic.collision_box_x, oic.object_info.pos.y + oic.collision_box_y };
-					if (IntersectRect(&tmp, &playerRect, &objectRect))
-						progress_Collision(client, oic);
+					if (IntersectRect(&tmp, &playerRect_1, &objectRect))
+						progress_Collision_po(cl_1, oic);
+				}
+			}
+			for (client cl_2 : clients)
+			{
+				if (cl_2.id != -1 && cl_2.id != cl_1.id && !cl_2.is_caught)
+				{
+					RECT playerRect_2 = RECT{ cl_2.GetX(), cl_2.GetY(), cl_2.GetX() + cl_2.GetWidth(), cl_2.GetY() + cl_2.GetHeight() };
+					if (IntersectRect(&tmp, &playerRect_1, &playerRect_2))
+						progress_Collision_pp(tmp, cl_1, cl_2);
 				}
 			}
 		}
@@ -442,7 +531,7 @@ DWORD WINAPI CalculateThread(LPVOID arg)
 			makeFood();
 			makeObstacle();
 			updateObjects();
-			collisionObjectPlayer();
+			collision();
 		}
 		else
 			break;
@@ -525,52 +614,66 @@ DWORD WINAPI RecvThread(LPVOID arg)
 
 				client& cl = clients[this_id];
 
-				short x = cl.GetX();
-				short y = cl.GetY();
+				if (!cl.is_caught)
+				{
+					short x = cl.GetX();
+					short y = cl.GetY();
 
-				// 방향에 따라 x, y 값이 속도만큼 변함
-				switch (move_packet->dir) {
-				case LEFT_DOWN:
-					x -= cl.speed;
-					break;
-				case RIGHT_DOWN:
-					x += cl.speed;
-					break;
-				case UP_DOWN:
-					y -= cl.speed;
-					break;
-				case DOWN_DOWN:
-					y += cl.speed;
+					// 방향에 따라 x, y 값이 속도만큼 변함
+					switch (move_packet->dir) {
+					case LEFT_DOWN:
+						x -= cl.speed;
+						break;
+					case RIGHT_DOWN:
+						x += cl.speed;
+						break;
+					case UP_DOWN:
+						y -= cl.speed;
+						break;
+					case DOWN_DOWN:
+						y += cl.speed;
+						break;
+					}
+
+					// 충돌처리 부분 필요
+
+					// 서버의 클라이언트 정보에 이동한 좌표값 최신화
+					cl.SetX(x);
+					cl.SetY(y);
+
+
+					std::cout << "x : " << x << ", y : " << y << ",  speed : " << cl.speed << std::endl;
+
+					SC_MOVE_PACKET packet;
+					packet.id = this_id;
+					packet.type = SC_PLAYER_MOVE;
+					packet.pos.x = x;
+					packet.pos.y = y;
+
+					// 내 이동 정보를 모든 클라이언트에 전송
+					for (auto& client : clients) {
+						if (client.id == -1)
+							continue;
+						client.send_packet(&packet, sizeof(packet));
+					}
+
+					overload_packet_process(buf, sizeof(CS_MOVE_PACKET), remain_packet);
 					break;
 				}
-
-				// 충돌처리 부분 필요
-
-				// 서버의 클라이언트 정보에 이동한 좌표값 최신화
-				cl.SetX(x);
-				cl.SetY(y);
-
-				std::cout << "x : " <<  x << ", y : " << y << ",  speed : " << cl.speed << std::endl;
-
-				SC_MOVE_PACKET packet;
-				packet.id = this_id;
-				packet.type = SC_PLAYER_MOVE;
-				packet.pos.x = x;
-				packet.pos.y = y;
-
-				// 내 이동 정보를 모든 클라이언트에 전송
-				for (auto& client : clients) {
-					if (client.id == -1)
-						continue;
-					client.send_packet(&packet, sizeof(packet));
-				}
-
-				overload_packet_process(buf, sizeof(CS_MOVE_PACKET), remain_packet);
-				break;
 			}
 
 			case CS_LBUTTONCLICK: {
+				CS_CLICK_PACKET* click_packet = reinterpret_cast<CS_CLICK_PACKET*>(buf);
 
+				for (auto& oic : objects_calculate)
+				{
+					if (oic.is_active)
+					{
+						RECT oicrect = RECT{ oic.object_info.pos.x, oic.object_info.pos.y, oic.object_info.pos.x + oic.collision_box_x, oic.object_info.pos.y + oic.collision_box_y };
+						if (PtInRect(&oicrect, click_packet->point))
+							progress_Collision_mo(oic);
+					}
+				}
 				overload_packet_process(buf, sizeof(CS_CLICK_PACKET), remain_packet);
 				break;
 			}

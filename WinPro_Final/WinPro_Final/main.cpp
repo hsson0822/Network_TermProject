@@ -14,6 +14,7 @@
 #include <time.h>
 #include <vector>
 #include <mmsystem.h>
+#include <algorithm>
 #include "resource.h"
 #include "Fish.h"
 #include "Food.h"
@@ -209,6 +210,13 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 
 				overload_packet_process(buf, sizeof(SC_CREATE_OBJCET_PACKET), remain_packet);
 				break;
+			}
+			case SC_ERASE_FOOD:
+			{
+				SC_CREATE_OBJCET_PACKET* packet = reinterpret_cast<SC_CREATE_OBJCET_PACKET*>(buf);
+				int id = packet->index;
+				auto erase = find_if(foods.begin(), foods.end(), [&id](const Food& f) {return f.getId() == id; });
+
 			}
 
 			case SC_ADD_PLAYER: {
@@ -658,8 +666,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 		if (!isGameStart)
 			break;
+		else
+		{
+			CS_CLICK_PACKET packet;
+			packet.type = CS_MOUSE_ClICK;
+			packet.point = mousePoint;
 
-		if (PtInRect(&netRect, mousePoint))
+			char send_buf[BUF_SIZE];
+			ZeroMemory(send_buf, BUF_SIZE);
+			memcpy(send_buf, &packet, sizeof(packet));
+
+			retval = send(sock, send_buf, sizeof(packet), 0);
+			if (retval == SOCKET_ERROR) err_display("move key down send()");
+		}
+		/*if (PtInRect(&netRect, mousePoint))
 		{
 			if (eventClick > 5)
 				break;
@@ -710,7 +730,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				}
 				eventOut = true;
 			}
-		}
+		}*/
 
 		break;
 
