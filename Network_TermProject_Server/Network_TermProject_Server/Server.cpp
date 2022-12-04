@@ -189,6 +189,9 @@ void makeFood()
 
 chrono::system_clock::time_point obstacleStart, obstacleCurrent;
 int obstacleMs;
+chrono::system_clock::time_point playerMoveStart, playerMoveCurrent;
+int playerMoveleMs;
+
 
 void makeObstacle()
 {
@@ -338,30 +341,30 @@ void progress_Collision(client &client, object_info_claculate &oic)
 	{
 	case NET:
 	{
-		cout << "충돌 : " << client.id << "번 플레이어, 그물" << endl;
+		cout << "충돌 : " << client.id << "번 플레이어, 그물 : " << oic.object_info.id << endl;
 		break;
 	}
 	case SHARK:
 	{
-		cout << "충돌 : " << client.id << "번 플레이어, 상어" << endl;
+		cout << "충돌 : " << client.id << "번 플레이어, 상어 : " << oic.object_info.id << endl;
 
 		break;
 	}
 	case HOOK:
 	{
-		cout << "충돌 : " << client.id << "번 플레이어, 바늘" << endl;
+		cout << "충돌 : " << client.id << "번 플레이어, 바늘 : " << oic.object_info.id << endl;
 
 		break;
 	}
 	case CRAB:
 	{
-		cout << "충돌 : " << client.id << "번 플레이어, 게" << endl;
+		cout << "충돌 : " << client.id << "번 플레이어, 게 : " << oic.object_info.id << endl;
 
 		break;
 	}
 	case SQUID:
 	{
-		cout << "충돌 : " << client.id << "번 플레이어, 오징어" << endl;
+		cout << "충돌 : " << client.id << "번 플레이어, 오징어 : " << oic.object_info.id << endl;
 
 		break;
 	}
@@ -401,19 +404,26 @@ void collisionObjectPlayer()
 
 void SendPlayerPositionPacket()
 {
-	for (auto& client : clients)
+	playerMoveCurrent = chrono::system_clock::now();
+	playerMoveleMs = chrono::duration_cast<chrono::milliseconds>(playerMoveCurrent - playerMoveStart).count();
+	if (playerMoveleMs > 500)
 	{
-		if (client.id != -1)
+		for (auto& client : clients)
 		{
-			SC_MOVE_PACKET packet;
-			packet.id = client.id;
-			packet.type = SC_PLAYER_MOVE;
-			packet.pos.x = client.GetX();
-			packet.pos.y = client.GetY();
-			cout << "id : " << client.id << ", x : " << client.GetX() << ", y : " << client.GetY() << endl;
+			if (client.id != -1)
+			{
+				SC_MOVE_PACKET packet;
+				packet.id = client.id;
+				packet.type = SC_PLAYER_MOVE;
+				packet.pos.x = client.GetX();
+				packet.pos.y = client.GetY();
+				cout << "id : " << client.id << ", x : " << client.GetX() << ", y : " << client.GetY() << endl;
+				playerMoveStart = chrono::system_clock::now();
 
-
-			client.send_packet(&packet, sizeof(SC_MOVE_PACKET));
+				for (auto& cl : clients)
+					if (cl.id != -1)
+						cl.send_packet(&packet, sizeof(SC_MOVE_PACKET));
+			}
 		}
 	}
 	
@@ -426,6 +436,8 @@ DWORD WINAPI CalculateThread(LPVOID arg)
 	int duration{};
 	foodStart = chrono::system_clock::now();
 	obstacleStart = chrono::system_clock::now();
+	playerMoveStart = chrono::system_clock::now();
+
 	while (duration < TIME_LIMIT)
 	{
 			
