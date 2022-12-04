@@ -18,6 +18,7 @@ private:
 public:
 	bool is_ready;
 	bool is_caught;
+	bool is_pulled;
 	int id;			// 클라이언트 구분용 id
 	int speed;
 	int score;
@@ -41,11 +42,12 @@ public:
 		score = 0;
 		is_ready = false;
 		is_caught = false;
+		is_pulled = false;
 	}
 
 	void SetX(short pos_x) { x = pos_x; }
 	void SetY(short pos_y) { y = pos_y; }
-	void SetSize(short size) { size = size; }
+	void SetSize(short si) { width += si; height += si; }
 
 	short GetX() const { return x; };
 	short GetY() const { return y; };
@@ -61,11 +63,15 @@ public:
 		send(sock, send_buf, size, 0);
 	}
 
+	void send_erase_object(object_info_claculate& oic);
+
 	void send_add_player(int id);
 };
 
 std::array<client, MAX_USER> clients;			// 클라이언트들의 컨테이너
 std::array<object_info, MAX_OBJECT> objects;	// 오브젝트 정 보가 담길 컨테이너
+array<object_info_claculate, MAX_OBJECT> objects_calculate{};
+int id_oic = -1;
 
 int id = 0;
 CRITICAL_SECTION id_cs;
@@ -94,6 +100,24 @@ void client::send_add_player(int id)
 	send_packet(&packet, sizeof(SC_ADD_PLAYER_PACKET));
 }
 
+void client::send_erase_object(object_info_claculate& oic)
+{
+	oic.is_active = false;
+
+	SC_ERASE_OBJECT_PACKET packet{};
+
+	if (oic.object_info.type == CRAB || oic.object_info.type == SQUID || oic.object_info.type == JELLYFISH)
+		packet.type = SC_ERASE_FOOD;
+	else
+		packet.type = SC_ERASE_OBSTACLE;
+
+	packet.object_type = oic.object_info.type;
+	packet.index = oic.object_info.id;
+
+	send_packet(&packet, sizeof(SC_ERASE_OBJECT_PACKET));
+}
+
+
 void overload_packet_process(char* buf, int packet_size, int& remain_packet)
 {
 	remain_packet -= packet_size;
@@ -104,8 +128,6 @@ void overload_packet_process(char* buf, int packet_size, int& remain_packet)
 
 chrono::system_clock::time_point foodStart, foodCurrent;
 int foodMs{};
-array<object_info_claculate, MAX_OBJECT> objects_calculate{};
-int id_oic = -1;
 void makeFood()
 {
 
@@ -204,7 +226,7 @@ void makeObstacle()
 		int obstacleKinds = rand() % 3;
 		short randX;
 		short randY;
-		int obstacleHP = rand() % 30;
+		int obstacleHP = rand() % MAX_LIFE;		// 0 ~ 49 랜덤값
 
 		cout << obstacleKinds << " 장애물 생성" << endl;
 
@@ -260,6 +282,7 @@ void makeObstacle()
 				oic.object_info.pos.y = packet.object.pos.y;
 				oic.collision_box_x = col_x;
 				oic.collision_box_y = col_y;
+				oic.life = obstacleHP;
 				break;
 			}
 		}
