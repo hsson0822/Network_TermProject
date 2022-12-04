@@ -669,7 +669,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		else
 		{
 			CS_CLICK_PACKET packet;
-			packet.type = CS_MOUSE_ClICK;
+			packet.type = CS_LBUTTONCLICK;
 			packet.point = mousePoint;
 
 			char send_buf[BUF_SIZE];
