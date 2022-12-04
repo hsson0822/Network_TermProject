@@ -215,8 +215,32 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 			{
 				SC_CREATE_OBJCET_PACKET* packet = reinterpret_cast<SC_CREATE_OBJCET_PACKET*>(buf);
 				int id = packet->index;
-				auto erase = find_if(foods.begin(), foods.end(), [&id](const Food& f) {return f.getId() == id; });
+				auto erase = find_if(foods.begin(), foods.end(), [&id](Food* f) {
+					if (f->getId() == id)
+					{
+						f->eraseFishKinds();
+						return true;
+					}
+					else
+						return false;
+					});
+			}
+			case SC_ERASE_OBSTACLE:
+			{
+				SC_CREATE_OBJCET_PACKET* packet = reinterpret_cast<SC_CREATE_OBJCET_PACKET*>(buf);
+				switch (packet->object.type)
+				{
+				case NET:
+					netRect = RECT{ 0,0,0,0 };
+					break;
+				case SHARK:
+					sharkRect = RECT{ 0,0,0,0 };
+					break;
+				case HOOK:
+					hookRect = RECT{ 0,0,0,0 };
+					break;
 
+				}
 			}
 
 			case SC_ADD_PLAYER: {
@@ -792,7 +816,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			//먹이
 			for (auto* f : foods)
 			{
-				if (f->getFishKinds() == 0)
+				if (!f->getFishKinds()) continue;
+				else if (f->getFishKinds() == 0)
 				{
 					oldBit2 = (HBITMAP)SelectObject(memDC2, jelly);
 					TransparentBlt(memDC1, f->getX(), f->getY(), 27, 30, memDC2, 27 * f->getMoveCount(), 0, 27, 30, RGB(255, 1, 1));

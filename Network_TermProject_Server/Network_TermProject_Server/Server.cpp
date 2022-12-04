@@ -667,7 +667,7 @@ DWORD WINAPI RecvThread(LPVOID arg)
 
 				for (auto& oic : objects_calculate)
 				{
-					if (oic.is_active)
+					if (oic.is_active && oic.life > 0)
 					{
 						RECT oicrect = RECT{ oic.object_info.pos.x, oic.object_info.pos.y, oic.object_info.pos.x + oic.collision_box_x, oic.object_info.pos.y + oic.collision_box_y };
 						if (PtInRect(&oicrect, click_packet->point))

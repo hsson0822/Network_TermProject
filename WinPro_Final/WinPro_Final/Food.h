@@ -35,5 +35,7 @@ public:
 	int getMaxCount();
 
 	int getFishKinds();
+	void eraseFishKinds() { fishKinds = -1; }
+
 
 };
