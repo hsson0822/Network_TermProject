@@ -402,33 +402,6 @@ void collisionObjectPlayer()
 	}
 }
 
-void SendPlayerPositionPacket()
-{
-	playerMoveCurrent = chrono::system_clock::now();
-	playerMoveleMs = chrono::duration_cast<chrono::milliseconds>(playerMoveCurrent - playerMoveStart).count();
-	if (playerMoveleMs > 500)
-	{
-		for (auto& client : clients)
-		{
-			if (client.id != -1)
-			{
-				SC_MOVE_PACKET packet;
-				packet.id = client.id;
-				packet.type = SC_PLAYER_MOVE;
-				packet.pos.x = client.GetX();
-				packet.pos.y = client.GetY();
-				cout << "id : " << client.id << ", x : " << client.GetX() << ", y : " << client.GetY() << endl;
-				playerMoveStart = chrono::system_clock::now();
-
-				for (auto& cl : clients)
-					if (cl.id != -1)
-						cl.send_packet(&packet, sizeof(SC_MOVE_PACKET));
-			}
-		}
-	}
-	
-}
-
 DWORD WINAPI CalculateThread(LPVOID arg)
 {
 	auto start_time = chrono::system_clock::now();
@@ -447,7 +420,6 @@ DWORD WINAPI CalculateThread(LPVOID arg)
 			makeObstacle();
 			updateObjects();
 			collisionObjectPlayer();
-			SendPlayerPositionPacket();
 		}
 		else
 			break;
@@ -557,18 +529,18 @@ DWORD WINAPI RecvThread(LPVOID arg)
 
 				std::cout << "x : " <<  x << ", y : " << y << ",  speed : " << cl.speed << std::endl;
 
-				//SC_MOVE_PACKET packet;
-				//packet.id = this_id;
-				//packet.type = SC_PLAYER_MOVE;
-				//packet.pos.x = x;
-				//packet.pos.y = y;
+				SC_MOVE_PACKET packet;
+				packet.id = this_id;
+				packet.type = SC_PLAYER_MOVE;
+				packet.pos.x = x;
+				packet.pos.y = y;
 
-				//// 내 이동 정보를 모든 클라이언트에 전송
-				//for (auto& client : clients) {
-				//	if (client.id == -1)
-				//		continue;
-				//	client.send_packet(&packet, sizeof(packet));
-				//}
+				// 내 이동 정보를 모든 클라이언트에 전송
+				for (auto& client : clients) {
+					if (client.id == -1)
+						continue;
+					client.send_packet(&packet, sizeof(packet));
+				}
 
 				overload_packet_process(buf, sizeof(CS_MOVE_PACKET), remain_packet);
 				break;
