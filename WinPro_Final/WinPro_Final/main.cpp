@@ -214,9 +214,9 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 			case SC_ERASE_FOOD:
 			{
 				cout << "SC_ERASE_FOOD" << endl;
-				/*SC_ERASE_OBJECT_PACKET* packet = reinterpret_cast<SC_ERASE_OBJECT_PACKET*>(buf);
+				SC_ERASE_OBJECT_PACKET* packet = reinterpret_cast<SC_ERASE_OBJECT_PACKET*>(buf);
 				int id = packet->index;
-				cout << packet->index << ", " << packet->object_type << endl;*/
+				cout << packet->index << ", " << packet->object_type << endl;
 				/*auto erase = find_if(foods.begin(), foods.end(), [&id](Food* f) {
 					if (f->getId() == id)
 					{
@@ -226,6 +226,7 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 					else
 						return false;
 					});*/
+
 				overload_packet_process(buf, sizeof(SC_ERASE_OBJECT_PACKET), remain_packet);
 
 				break;
@@ -233,10 +234,10 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 			case SC_ERASE_OBSTACLE:
 			{
 				cout << "SC_ERASE_OBSTACLE" << endl;
-				/*SC_ERASE_OBJECT_PACKET* packet = reinterpret_cast<SC_ERASE_OBJECT_PACKET*>(buf);
-				cout << packet->index << ", " << packet->object_type << endl;*/
+				SC_ERASE_OBJECT_PACKET* packet = reinterpret_cast<SC_ERASE_OBJECT_PACKET*>(buf);
+				cout << packet->index << ", " << packet->object_type << endl;
 
-				/*switch (packet->object_type)
+				switch (packet->object_type)
 				{
 				case NET:
 					netRect = RECT{ 0,0,0,0 };
@@ -247,8 +248,18 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				case HOOK:
 					hookRect = RECT{ 0,0,0,0 };
 					break;
+				}
 
-				}*/
+				overload_packet_process(buf, sizeof(SC_ERASE_OBJECT_PACKET), remain_packet);
+				break;
+			}
+			case SC_UPDATE_OBSTACLE:
+			{
+				cout << "SC_UPDATE_OBSTACLE" << endl;
+				SC_UPDATE_OBJECT_PACKET* packet = reinterpret_cast<SC_UPDATE_OBJECT_PACKET*>(buf);
+
+
+				overload_packet_process(buf, sizeof(SC_UPDATE_OBJECT_PACKET), remain_packet);
 				break;
 			}
 

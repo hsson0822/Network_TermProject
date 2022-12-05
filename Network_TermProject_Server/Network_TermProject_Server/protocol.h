@@ -32,6 +32,7 @@ enum PacketType {
 	SC_LOGIN_OK,			// 서버 -> 클라		플레이어 접속 확인
 	SC_LEAVE_PLAYER,
 	CS_DISCONNECT,
+	SC_UPDATE_OBSTACLE,
 };
 
 // 오브젝트 type 구분
@@ -49,11 +50,7 @@ enum PlayerMove {
 	LEFT_DOWN,
 	RIGHT_DOWN,
 	UP_DOWN,
-	DOWN_DOWN,
-	LEFT_UP,
-	RIGHT_UP,
-	UP_UP,
-	DOWN_UP
+	DOWN_DOWN
 };
 
 enum FoodScore {
@@ -61,6 +58,11 @@ enum FoodScore {
 	CRAB_SCORE,
 	SQUID_SCORE,
 	JELLYFISH_SCORE
+};
+
+enum ObstacleDirection {
+	RIGHT,
+	LEFT
 };
 
 struct client_info {
@@ -87,6 +89,7 @@ struct object_info_claculate {
 	short collision_box_x, collision_box_y;
 	bool b_hook = false;
 	int life = -1;
+	char dir = -1;
 };
 // 서버 -> 클라 패킷의 id 는 클라이언트 구분용 id
 
@@ -177,12 +180,18 @@ struct SC_CREATE_OBJCET_PACKET {
 	char type;
 	int index;
 	object_info object;
+	char dir;
 };
 
 struct SC_ERASE_OBJECT_PACKET {
 	char type;
 	int index;
 	char object_type = -1;
+};
+
+struct SC_UPDATE_OBJECT_PACKET {
+	char type;
+	object_info oi;
 };
 
 struct SC_LEAVE_PLAYER_PACKET {
