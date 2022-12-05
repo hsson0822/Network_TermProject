@@ -114,7 +114,7 @@ void client::send_erase_object(object_info_claculate& oic)
 	packet.object_type = oic.object_info.type;
 	packet.index = oic.object_info.id;
 
-	send_packet(&packet, sizeof(SC_ERASE_OBJECT_PACKET));
+	//send_packet(&packet, sizeof(SC_ERASE_OBJECT_PACKET));
 }
 
 
@@ -428,26 +428,21 @@ void progress_Collision_po(client &client, object_info_claculate &oic)
 		cout << "충돌 : " << client.id << "번 플레이어, "<< oic.object_info.type << " : " << oic.object_info.id << endl;
 		client.is_caught = true;
 		client.score -= OBSTACLE_SCORE;
-
-		oic.is_active = false;
-
 		
-		/*for (auto& cl : clients)
-			cl.send_erase_object(oic);*/
+		for (auto& cl : clients)
+			cl.send_erase_object(oic);
 
 		break;
 	}
 	case CRAB:
 	{
 		cout << "충돌 : " << client.id << "번 플레이어, 게 : " << oic.object_info.id << endl;
+
 		client.score += CRAB_SCORE;
 		client.SetSize(CRAB_SCORE);
-
-		oic.is_active = false;
-
-		/*
+		
 		for (auto& cl : clients)
-			cl.send_erase_object(oic);*/
+			cl.send_erase_object(oic);
 
 		break;
 	}
@@ -456,12 +451,9 @@ void progress_Collision_po(client &client, object_info_claculate &oic)
 		cout << "충돌 : " << client.id << "번 플레이어, 오징어 : " << oic.object_info.id << endl;
 		client.score += SQUID_SCORE;
 		client.SetSize(SQUID_SCORE);
-
-		oic.is_active = false;
-
 		
-		/*for (auto& cl : clients)
-			cl.send_erase_object(oic);*/
+		for (auto& cl : clients)
+			cl.send_erase_object(oic);
 
 		break;
 	}
@@ -470,12 +462,9 @@ void progress_Collision_po(client &client, object_info_claculate &oic)
 		cout << "충돌 : " << client.id << "번 플레이어, 해파리" << endl;
 		client.score += JELLYFISH_SCORE;
 		client.SetSize(JELLYFISH_SCORE);
-
-		oic.is_active = false;
-
 		
-		/*for (auto& cl : clients)
-			cl.send_erase_object(oic);*/
+		for (auto& cl : clients)
+			cl.send_erase_object(oic);
 
 		break;
 	}
@@ -492,21 +481,21 @@ void progress_Collision_mo(object_info_claculate& oic)
 	{
 		oic.is_active = false;
 
-		/*for (auto& cl : clients)
-			cl.send_erase_object(oic);*/
+		for (auto& cl : clients)
+			cl.send_erase_object(oic);
 	}
 
 }
 
 void collision()
 {
-	for (client cl_1 : clients)
+	for (client& cl_1 : clients)
 	{
 		if (cl_1.id != -1 && !cl_1.is_caught)
 		{
 			RECT tmp{};
 			RECT playerRect_1 = RECT{ cl_1.GetX(), cl_1.GetY(), cl_1.GetX() + cl_1.GetWidth(), cl_1.GetY() + cl_1.GetHeight() };
-			for (object_info_claculate oic : objects_calculate)
+			for (object_info_claculate& oic : objects_calculate)
 			{
 				if (oic.is_active)
 				{
@@ -515,7 +504,7 @@ void collision()
 						progress_Collision_po(cl_1, oic);
 				}
 			}
-			for (client cl_2 : clients)
+			for (client& cl_2 : clients)
 			{
 				if (cl_2.id != -1 && cl_2.id != cl_1.id && !cl_2.is_caught)
 				{
