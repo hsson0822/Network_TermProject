@@ -64,12 +64,12 @@ public:
 	}
 
 	void send_erase_object(object_info_claculate& oic);
+	void send_update_object(object_info_claculate& oic);
 
 	void send_add_player(int id);
 };
 
 std::array<client, MAX_USER> clients;			// 클라이언트들의 컨테이너
-std::array<object_info, MAX_OBJECT> objects;	// 오브젝트 정 보가 담길 컨테이너
 array<object_info_claculate, MAX_OBJECT> objects_calculate{};
 int id_oic = -1;
 
@@ -106,16 +106,26 @@ void client::send_erase_object(object_info_claculate& oic)
 
 	SC_ERASE_OBJECT_PACKET packet{};
 
-	/*if (oic.object_info.type == CRAB || oic.object_info.type == SQUID || oic.object_info.type == JELLYFISH)
+	if (oic.object_info.type >= CRAB) // CRAB, SQUID, JELLYFISH
 		packet.type = SC_ERASE_FOOD;
-	else
-		packet.type = SC_ERASE_OBSTACLE;*/
-	packet.type = SC_ERASE_FOOD;
+	else // NET, HOOK, SHARK
+		packet.type = SC_ERASE_OBSTACLE;
 
 	packet.object_type = oic.object_info.type;
 	packet.index = oic.object_info.id;
 
 	send_packet(&packet, sizeof(SC_ERASE_OBJECT_PACKET));
+}
+
+void client::send_update_object(object_info_claculate& oic)
+{
+	SC_UPDATE_OBJECT_PACKET packet{};
+
+	packet.type = SC_UPDATE_OBSTACLE;
+
+	packet.oi = oic.object_info;
+
+	send_packet(&packet, sizeof(SC_UPDATE_OBJECT_PACKET));
 }
 
 
@@ -225,6 +235,7 @@ void makeObstacle()
 	{
 
 		int obstacleKinds = rand() % 3;
+		int obstacledir = rand() % 2;
 		short randX;
 		short randY;
 		int obstacleHP = rand() % MAX_LIFE;		// 0 ~ 49 랜덤값
@@ -268,6 +279,7 @@ void makeObstacle()
 
 		obstacleStart = chrono::system_clock::now();
 
+		packet.dir = obstacledir;
 		packet.object.pos.x = randX;
 		packet.object.pos.y = randY;
 
@@ -284,6 +296,7 @@ void makeObstacle()
 				oic.collision_box_x = col_x;
 				oic.collision_box_y = col_y;
 				oic.life = obstacleHP;
+				oic.dir = packet.dir;
 				break;
 			}
 		}
@@ -308,8 +321,8 @@ void updateObjects()
 				oic.object_info.pos.x += 10;
 				if (oic.object_info.pos.x >= WINDOWWIDTH)
 				{
-					oic.is_active = false;
-					oic.object_info.type = -1;
+					for (client& client : clients)
+						client.send_erase_object(oic);
 				}
 				break;
 			}
@@ -318,8 +331,8 @@ void updateObjects()
 				oic.object_info.pos.x += 7;
 				if (oic.object_info.pos.x >= WINDOWWIDTH)
 				{
-					oic.is_active = false;
-					oic.object_info.type = -1;
+					for (client& client : clients)
+						client.send_erase_object(oic);
 				}
 				break;
 			}
@@ -333,27 +346,21 @@ void updateObjects()
 					oic.object_info.pos.y -= 5;
 				else if (oic.object_info.pos.y < -10)
 				{
-					oic.is_active = false;
-					oic.object_info.type = -1;
+					for (client& client : clients)
+						client.send_erase_object(oic);
 				}
 				break;
 			}
-			case CRAB:
-			case SQUID:
-			case JELLYFISH:
+			default:
 			{
-				oic.object_info.pos.y += 4;
-				if (oic.object_info.pos.y > WINDOWHEIGHT)
-				{
-					oic.is_active = false;
-					oic.object_info.type = -1;
-				}
 				break;
 			}
-		default:
-			{
-			break;
 			}
+			// switch문 처리 후에도 살아있으면
+			if (oic.is_active && oic.object_info.type <= SHARK) // NET, HOOK, SHARK
+			{
+				for (client& client : clients)
+					client.send_update_object(oic);
 			}
 		}
 	}
@@ -480,8 +487,6 @@ void progress_Collision_mo(object_info_claculate& oic)
 {
 	if (--oic.life == -1)
 	{
-		oic.is_active = false;
-
 		for (auto& cl : clients)
 			cl.send_erase_object(oic);
 	}
@@ -671,7 +676,7 @@ DWORD WINAPI RecvThread(LPVOID arg)
 
 				for (auto& oic : objects_calculate)
 				{
-					if (oic.is_active && oic.life > 0)
+					if (oic.is_active && oic.life > 0) // life가 0 이상이면 장애물임
 					{
 						RECT oicrect = RECT{ oic.object_info.pos.x, oic.object_info.pos.y, oic.object_info.pos.x + oic.collision_box_x, oic.object_info.pos.y + oic.collision_box_y };
 						if (PtInRect(&oicrect, click_packet->point))
