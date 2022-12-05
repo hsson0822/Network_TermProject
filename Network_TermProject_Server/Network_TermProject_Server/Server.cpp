@@ -106,15 +106,16 @@ void client::send_erase_object(object_info_claculate& oic)
 
 	SC_ERASE_OBJECT_PACKET packet{};
 
-	if (oic.object_info.type == CRAB || oic.object_info.type == SQUID || oic.object_info.type == JELLYFISH)
+	/*if (oic.object_info.type == CRAB || oic.object_info.type == SQUID || oic.object_info.type == JELLYFISH)
 		packet.type = SC_ERASE_FOOD;
 	else
-		packet.type = SC_ERASE_OBSTACLE;
+		packet.type = SC_ERASE_OBSTACLE;*/
+	packet.type = SC_ERASE_FOOD;
 
 	packet.object_type = oic.object_info.type;
 	packet.index = oic.object_info.id;
 
-	//send_packet(&packet, sizeof(SC_ERASE_OBJECT_PACKET));
+	send_packet(&packet, sizeof(SC_ERASE_OBJECT_PACKET));
 }
 
 
