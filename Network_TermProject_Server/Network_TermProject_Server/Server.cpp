@@ -184,7 +184,6 @@ void makeFood()
 
 		for (object_info_claculate& oic : objects_calculate)
 		{
-			cout << id_oic << endl;
 			if (!oic.is_active)
 			{
 				id_oic++;
@@ -197,6 +196,7 @@ void makeFood()
 				oic.collision_box_y = col_y;
 				break;
 			}
+			cout << id_oic << endl;
 		}
 		packet.index = id_oic;
 
@@ -360,6 +360,8 @@ void updateObjects()
 
 void progress_Collision_pp(RECT tmp, client& cl_1, client& cl_2)
 {
+	cout << cl_1.id << "번 플레이어와" << cl_2.id << "번 플레이어가 " << tmp.right - tmp.left << " x " << tmp.bottom - tmp.top << " 크기만큼 충돌" << endl;
+	
 	if (cl_1.GetWidth() > cl_2.GetWidth())
 	{
 		// rect가 
@@ -426,9 +428,12 @@ void progress_Collision_po(client &client, object_info_claculate &oic)
 		cout << "충돌 : " << client.id << "번 플레이어, "<< oic.object_info.type << " : " << oic.object_info.id << endl;
 		client.is_caught = true;
 		client.score -= OBSTACLE_SCORE;
+
+		oic.is_active = false;
+
 		
-		for (auto& cl : clients)
-			cl.send_erase_object(oic);
+		/*for (auto& cl : clients)
+			cl.send_erase_object(oic);*/
 
 		break;
 	}
@@ -437,9 +442,12 @@ void progress_Collision_po(client &client, object_info_claculate &oic)
 		cout << "충돌 : " << client.id << "번 플레이어, 게 : " << oic.object_info.id << endl;
 		client.score += CRAB_SCORE;
 		client.SetSize(CRAB_SCORE);
-		
+
+		oic.is_active = false;
+
+		/*
 		for (auto& cl : clients)
-			cl.send_erase_object(oic);
+			cl.send_erase_object(oic);*/
 
 		break;
 	}
@@ -448,9 +456,12 @@ void progress_Collision_po(client &client, object_info_claculate &oic)
 		cout << "충돌 : " << client.id << "번 플레이어, 오징어 : " << oic.object_info.id << endl;
 		client.score += SQUID_SCORE;
 		client.SetSize(SQUID_SCORE);
+
+		oic.is_active = false;
+
 		
-		for (auto& cl : clients)
-			cl.send_erase_object(oic);
+		/*for (auto& cl : clients)
+			cl.send_erase_object(oic);*/
 
 		break;
 	}
@@ -459,9 +470,12 @@ void progress_Collision_po(client &client, object_info_claculate &oic)
 		cout << "충돌 : " << client.id << "번 플레이어, 해파리" << endl;
 		client.score += JELLYFISH_SCORE;
 		client.SetSize(JELLYFISH_SCORE);
+
+		oic.is_active = false;
+
 		
-		for (auto& cl : clients)
-			cl.send_erase_object(oic);
+		/*for (auto& cl : clients)
+			cl.send_erase_object(oic);*/
 
 		break;
 	}
@@ -478,8 +492,8 @@ void progress_Collision_mo(object_info_claculate& oic)
 	{
 		oic.is_active = false;
 
-		for (auto& cl : clients)
-			cl.send_erase_object(oic);
+		/*for (auto& cl : clients)
+			cl.send_erase_object(oic);*/
 	}
 
 }
