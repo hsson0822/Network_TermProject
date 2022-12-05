@@ -11,6 +11,8 @@ constexpr int SPAWN_HEIGHT = 600;
 #define WINDOWHEIGHT 900
 #define OBSTACLE_SCORE 10
 #define MAX_LIFE 50
+#define FISH_INIT_WIDTH 120
+#define FISH_INIT_HEIGHT 140
 
 // packet¿« type ±∏∫–
 enum PacketType {

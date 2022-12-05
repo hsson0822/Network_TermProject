@@ -35,8 +35,8 @@ public:
 		sock = 0;
 		x = 0;
 		y = 0;
-		width = 120;
-		height = 140;
+		width = FISH_INIT_WIDTH;
+		height = FISH_INIT_HEIGHT;
 		id = -1;
 		speed = 5;
 		score = 0;
@@ -48,6 +48,7 @@ public:
 	void SetX(short pos_x) { x = pos_x; }
 	void SetY(short pos_y) { y = pos_y; }
 	void SetSize(short si) { width += si; height += si; }
+	void ResetSize() { width = FISH_INIT_WIDTH; height = FISH_INIT_HEIGHT; }
 
 	short GetX() const { return x; };
 	short GetY() const { return y; };
@@ -364,6 +365,9 @@ void updateObjects()
 			}
 		}
 	}
+
+	for (client& client : clients)
+		client.speed *= FISH_INIT_WIDTH / client.GetWidth();
 }
 
 void progress_Collision_pp(RECT tmp, client& cl_1, client& cl_2)
@@ -436,9 +440,12 @@ void progress_Collision_po(client &client, object_info_claculate &oic)
 		cout << "충돌 : " << client.id << "번 플레이어, "<< oic.object_info.type << " : " << oic.object_info.id << endl;
 		client.is_caught = true;
 		client.score -= OBSTACLE_SCORE;
+		client.ResetSize();
 		
 		for (auto& cl : clients)
+		{
 			cl.send_erase_object(oic);
+		}
 
 		break;
 	}
