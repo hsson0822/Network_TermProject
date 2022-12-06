@@ -152,31 +152,21 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				switch (eventNum)
 				{
 				case NET:
-					netDir = rand() % 2;
+					netDir = packet->dir;
 
-					if (netDir == 0)
-						netRect = { x - 200, y, x, y + 400 };
-					else
-						netRect = { x, y, x + 200, y + 400 };
+					netRect = { x, y, x + 200, y + 400 };
 
 					cout << "그물" << endl;
 					break;
 
 				case HOOK:
-					hookCount = 0;
 					hookRect = { x, y, x + 100, y + 300 };
-
 					cout << "바늘" << endl;
 					break;
 
 				case SHARK:
-					sharkDir = rand() % 2;
-
-					if (sharkDir == 0)
-						sharkRect = { x - 200, y, x, y + 100 };
-					else
-						sharkRect = { x, y, x + 200, y + 100 };
-
+					sharkDir = packet->dir;
+					sharkRect = { x, y, x + 200, y + 100 };
 					cout << "상어" << endl;
 					break;
 				}
@@ -638,19 +628,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			if (caught)
 				break;
 		case VK_LEFT:
-			//dir = LEFT_UP;
 			fish.setXY(false);
 			fish.setLR(false);
 			fish.setMoveDir(4);
 			break;
 		case VK_RIGHT:
-			//dir = RIGHT_UP;
 			fish.setXY(false);
 			fish.setLR(true);
 			fish.setMoveDir(4);
 			break;
 		case VK_UP:
-			//dir = UP_UP;
 			if (fish.isLR())
 			{
 				fish.setXY(false);
@@ -664,7 +651,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			fish.setMoveDir(4);
 			break;
 		case VK_DOWN:
-			//dir = DOWN_UP;
 			if (fish.isLR())
 			{
 				fish.setXY(false);
@@ -726,7 +712,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			else
 				CloseHandle(hThread);
 
-			//playButtonRect = { 0,0,0,0 };
+			playButtonRect = { 0,0,0,0 };
 		}
 
 		if (!isGameStart)
@@ -857,8 +843,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			//먹이
 			for (auto* f : foods)
 			{
-				if (!f->getFishKinds()) continue;
-				else if (f->getFishKinds() == 0)
+				
+				if (f->getFishKinds() == 0)
 				{
 					oldBit2 = (HBITMAP)SelectObject(memDC2, jelly);
 					TransparentBlt(memDC1, f->getX(), f->getY(), 27, 30, memDC2, 27 * f->getMoveCount(), 0, 27, 30, RGB(255, 1, 1));
@@ -946,23 +932,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			DeleteObject(memDC1);
 			InvalidateRgn(hWnd, NULL, false);
 			ReleaseDC(hWnd, hDC);
-			break;
-
-			//먹이 낙하
-		case 2:
-			/*for (vector<Food*>::iterator iter = foods.begin(); iter != foods.end(); ++iter)
-			{
-				(*iter)->setY((*iter)->getY() + 4);
-				if ((*iter)->getY() > rect.bottom - 120)
-				{
-					iter = foods.erase(iter);
-					--foodCount;
-				}
-
-				if (iter == foods.end())
-					break;
-			}*/
-
 			break;
 
 			//물고기 이동 및 먹이 섭취
@@ -1067,34 +1036,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			//eventOut = false;
 			//// 화난 얼굴
 			//angryCount = 0;
-			//if (eventNum == 0)
-			//{
-			//	netDir = rand() % 2;
-			//	if (netDir == 0)
-			//	{
-			//		netRect = { rect.left - 200, rect.top, rect.left, rect.top + 400 };
-			//	}
-			//	else
-			//	{
-			//		netRect = { rect.right, rect.top, rect.right + 200, rect.top + 400 };
-			//	}
-			//}
-			//else if (eventNum == 1)
-			//{
-			//	hookX = rand() % rect.right;
-			//	hookCount = 0;
-			//	hookRect = { hookX,-300,hookX + 100,0 };
-			//}
-			//else if (eventNum == 2)
-			//{
-			//	sharkDir = rand() % 2;
-			//	sharkY = rand() % rect.bottom;
-			//	if (sharkDir == 0)
-			//		sharkRect = { rect.left - 200, sharkY,rect.left,sharkY + 100 };
-			//	else
-			//		sharkRect = { rect.right, sharkY,rect.right + 200,sharkY + 100 };
-			//}
-
 			break;
 
 			// 이벤트 재생
@@ -1190,32 +1131,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				break;
 			}
 			break;
-			//case 7:
-			//	if (foodCount < foodMax)
-			//	{
-			//		foodKinds = rand() % 3;
-			//		randX = rand() % rect.right;
-			//		randY = rand() % rect.bottom;
-			//		if (foodKinds == 0)
-			//		{
-			//			//해파리
-			//			foods.push_back(new Food(0, randX, randY, 27, 30, 4));
-			//		}
-			//		else if (foodKinds == 1)
-			//		{
-			//			//게
-			//			foods.push_back(new Food(1, randX, randY, 85, 61, 2));
-			//		}
-			//		else
-			//		{
-			//			//오징어
-			//			foods.push_back(new Food(2, randX, randY, 47, 72, 10));
-			//		}
 
-
-			//		++foodCount;
-			//	}
-			//	break;
 			}
 		}
 		break;
