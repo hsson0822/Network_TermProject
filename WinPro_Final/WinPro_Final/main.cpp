@@ -148,11 +148,10 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				short x = packet->object.pos.x;
 				short y = packet->object.pos.y;
 
-
 				switch (eventNum)
 				{
 				case NET:
-					netDir = rand() % 2;
+					netDir = packet->dir;
 
 					if (netDir == 0)
 						netRect = { x - 200, y, x, y + 400 };
@@ -170,7 +169,7 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 					break;
 
 				case SHARK:
-					sharkDir = rand() % 2;
+					sharkDir = packet->dir;
 
 					if (sharkDir == 0)
 						sharkRect = { x - 200, y, x, y + 100 };
