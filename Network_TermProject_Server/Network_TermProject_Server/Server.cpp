@@ -204,8 +204,8 @@ void makeFood()
 				oic.object_info.type = packet.object.type;
 				oic.object_info.pos.x = packet.object.pos.x;
 				oic.object_info.pos.y = packet.object.pos.y;
-				oic.collision_box_x = col_x;
-				oic.collision_box_y = col_y;
+				oic.width = col_x;
+				oic.height = col_y;
 				break;
 			}
 			cout << id_oic << endl;
@@ -265,7 +265,7 @@ void makeObstacle()
 			randX = rand() % 1800;
 			randY = 0;
 			col_x = 100;
-			col_y = -300;
+			col_y = 300;
 		}
 		else
 		{
@@ -294,8 +294,8 @@ void makeObstacle()
 				oic.object_info.type = packet.object.type;
 				oic.object_info.pos.x = packet.object.pos.x;
 				oic.object_info.pos.y = packet.object.pos.y;
-				oic.collision_box_x = col_x;
-				oic.collision_box_y = col_y;
+				oic.width = col_x;
+				oic.height = col_y;
 				oic.life = obstacleHP;
 				oic.dir = packet.dir;
 				break;
@@ -319,8 +319,12 @@ void updateObjects()
 			{
 			case NET:
 			{
-				oic.object_info.pos.x += 10;
-				if (oic.object_info.pos.x >= WINDOWWIDTH)
+				if(oic.dir == RIGHT)
+					oic.object_info.pos.x += 10;
+				else if (oic.dir == LEFT)
+					oic.object_info.pos.x -= 10;
+
+				if ((oic.dir == RIGHT && oic.object_info.pos.x >= WINDOWWIDTH) || (oic.dir == LEFT && oic.object_info.pos.x + oic.width <= 0))
 				{
 					for (client& client : clients)
 						client.send_erase_object(oic);
@@ -329,8 +333,12 @@ void updateObjects()
 			}
 			case SHARK:
 			{
-				oic.object_info.pos.x += 7;
-				if (oic.object_info.pos.x >= WINDOWWIDTH)
+				if (oic.dir == RIGHT)
+					oic.object_info.pos.x += 7;
+				else if (oic.dir == LEFT)
+					oic.object_info.pos.x -= 7;
+
+				if ((oic.dir == RIGHT && oic.object_info.pos.x >= WINDOWWIDTH) || (oic.dir == LEFT && oic.object_info.pos.x + oic.width <= 0))
 				{
 					for (client& client : clients)
 						client.send_erase_object(oic);
@@ -341,11 +349,12 @@ void updateObjects()
 			{
 				if (!oic.b_hook)
 					oic.object_info.pos.y += 5;
-				else if (!oic.b_hook && oic.object_info.pos.y >= oic.collision_box_y)
+				else if (!oic.b_hook && oic.object_info.pos.y >= 0)
 					oic.b_hook = true;
 				else if (oic.b_hook)
 					oic.object_info.pos.y -= 5;
-				else if (oic.object_info.pos.y < -10)
+				
+				if (oic.b_hook && oic.object_info.pos.y < oic.height)
 				{
 					for (client& client : clients)
 						client.send_erase_object(oic);
@@ -512,7 +521,7 @@ void collision()
 			{
 				if (oic.is_active)
 				{
-					RECT objectRect = RECT{ oic.object_info.pos.x, oic.object_info.pos.y, oic.object_info.pos.x + oic.collision_box_x, oic.object_info.pos.y + oic.collision_box_y };
+					RECT objectRect = RECT{ oic.object_info.pos.x, oic.object_info.pos.y, oic.object_info.pos.x + oic.width, oic.object_info.pos.y + oic.height };
 					if (IntersectRect(&tmp, &playerRect_1, &objectRect))
 						progress_Collision_po(cl_1, oic);
 				}
@@ -685,7 +694,7 @@ DWORD WINAPI RecvThread(LPVOID arg)
 				{
 					if (oic.is_active && oic.life > 0) // life가 0 이상이면 장애물임
 					{
-						RECT oicrect = RECT{ oic.object_info.pos.x, oic.object_info.pos.y, oic.object_info.pos.x + oic.collision_box_x, oic.object_info.pos.y + oic.collision_box_y };
+						RECT oicrect = RECT{ oic.object_info.pos.x, oic.object_info.pos.y, oic.object_info.pos.x + oic.width, oic.object_info.pos.y + oic.height };
 						if (PtInRect(&oicrect, click_packet->point))
 							progress_Collision_mo(oic);
 					}

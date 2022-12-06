@@ -88,7 +88,7 @@ struct object_info {
 struct object_info_claculate {
 	object_info object_info;
 	bool is_active = false;
-	short collision_box_x, collision_box_y;
+	short width, height;
 	bool b_hook = false;
 	int life = -1;
 	char dir = -1;
