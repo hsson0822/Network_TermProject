@@ -7,10 +7,26 @@ constexpr int MAX_OBJECT = 100;
 
 constexpr int SPAWN_WIDTH = 800;
 constexpr int SPAWN_HEIGHT = 600;
+
 #define WINDOWWIDTH 1800
 #define WINDOWHEIGHT 900
 #define OBSTACLE_SCORE 10
 #define MAX_LIFE 50
+
+#define NET_WIDTH 200
+#define NET_HEIGHT 400
+#define HOOK_WIDTH 100
+#define HOOK_HEIGHT 300
+#define SHARK_WIDTH 200
+#define SHARK_HEIGHT 100
+
+#define CRAB_WIDTH 85
+#define CRAB_HEIGHT 61
+#define SQUID_WIDTH 42
+#define SQUID_HEIGHT 72
+#define JELLYFISH_WIDTH 27
+#define JELLYFISH_HEIGHT 30
+
 #define FISH_INIT_WIDTH 120
 #define FISH_INIT_HEIGHT 140
 
@@ -56,8 +72,7 @@ enum PlayerMove {
 };
 
 enum FoodScore {
-	ZERO,
-	CRAB_SCORE,
+	CRAB_SCORE = 1,
 	SQUID_SCORE,
 	JELLYFISH_SCORE
 };

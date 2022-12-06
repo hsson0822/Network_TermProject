@@ -17,7 +17,7 @@ private:
 
 public:
 	bool is_ready;
-	bool is_caught;
+	int is_caught;
 	bool is_pulled;
 	int id;			// 클라이언트 구분용 id
 	int speed;
@@ -41,14 +41,14 @@ public:
 		speed = 5;
 		score = 0;
 		is_ready = false;
-		is_caught = false;
+		is_caught = -1;
 		is_pulled = false;
 	}
 
 	void SetX(short pos_x) { x = pos_x; }
 	void SetY(short pos_y) { y = pos_y; }
 	void SetSize(short si) { width += si; height += si; }
-	void ResetSize() { width = FISH_INIT_WIDTH; height = FISH_INIT_HEIGHT; }
+	void Reset() { width = FISH_INIT_WIDTH; height = FISH_INIT_HEIGHT; speed = 5; }
 
 	short GetX() const { return x; };
 	short GetY() const { return y; };
@@ -168,24 +168,22 @@ void makeFood()
 		{
 			//게
 			packet.object.type = CRAB;
-			col_x = 85;
-			col_y = 61;
+			col_x = CRAB_WIDTH;
+			col_y = CRAB_HEIGHT;
 		}
 		else if (foodKinds == SQUID)
 		{
 			//오징어
-			//foods.push_back(new Food(2, randX, randY, 47, 72, 10));
 			packet.object.type = SQUID;
-			col_x = 42;
-			col_y = 72;
+			col_x = SQUID_WIDTH;
+			col_y = SQUID_HEIGHT;
 		}
 		else
 		{
 			//해파리
-			//foods.push_back(new Food(0, randX, randY, 27, 30, 4));
 			packet.object.type = JELLYFISH;
-			col_x = 27;
-			col_y = 30;
+			col_x = JELLYFISH_WIDTH;
+			col_y = JELLYFISH_HEIGHT;
 		}
 
 		foodStart = chrono::system_clock::now();
@@ -223,8 +221,8 @@ void makeFood()
 
 chrono::system_clock::time_point obstacleStart, obstacleCurrent;
 int obstacleMs;
-chrono::system_clock::time_point playerMoveStart, playerMoveCurrent;
-int playerMoveleMs;
+chrono::system_clock::time_point updateStart, updateCurrent;
+int updateMs;
 
 
 void makeObstacle()
@@ -254,8 +252,8 @@ void makeObstacle()
 
 			randX = rand() % 1800;
 			randY = 0;
-			col_x = 200;
-			col_y = 400;
+			col_x = NET_WIDTH;
+			col_y = NET_HEIGHT;
 		}
 		else if (obstacleKinds == HOOK)
 		{
@@ -264,8 +262,8 @@ void makeObstacle()
 
 			randX = rand() % 1800;
 			randY = 0;
-			col_x = 100;
-			col_y = 300;
+			col_x = HOOK_WIDTH;
+			col_y = HOOK_HEIGHT;
 		}
 		else
 		{
@@ -274,8 +272,8 @@ void makeObstacle()
 
 			randX = 0;
 			randY = rand() % 1000;
-			col_x = 200;
-			col_y = 100;
+			col_x = SHARK_WIDTH;
+			col_y = SHARK_HEIGHT;
 		}
 
 		obstacleStart = chrono::system_clock::now();
@@ -311,72 +309,101 @@ void makeObstacle()
 
 void updateObjects()
 {
-	for (object_info_claculate& oic : objects_calculate)
+	updateCurrent = chrono::system_clock::now();
+	updateMs = chrono::duration_cast<chrono::milliseconds>(updateCurrent - updateStart).count();
+	if (updateMs > 17)
 	{
-		if (oic.is_active)
+		for (object_info_claculate& oic : objects_calculate)
 		{
-			switch (oic.object_info.type)
+			if (oic.is_active)
 			{
-			case NET:
-			{
-				if(oic.dir == RIGHT)
-					oic.object_info.pos.x += 10;
-				else if (oic.dir == LEFT)
-					oic.object_info.pos.x -= 10;
+				switch (oic.object_info.type)
+				{
+				case NET:
+				{
+					if (oic.dir == RIGHT)
+						oic.object_info.pos.x += 10;
+					else if (oic.dir == LEFT)
+						oic.object_info.pos.x -= 10;
 
-				if ((oic.dir == RIGHT && oic.object_info.pos.x >= WINDOWWIDTH) || (oic.dir == LEFT && oic.object_info.pos.x + oic.width <= 0))
-				{
-					for (client& client : clients)
-						client.send_erase_object(oic);
-				}
-				break;
-			}
-			case SHARK:
-			{
-				if (oic.dir == RIGHT)
-					oic.object_info.pos.x += 7;
-				else if (oic.dir == LEFT)
-					oic.object_info.pos.x -= 7;
+					if ((oic.dir == RIGHT && oic.object_info.pos.x >= WINDOWWIDTH) || (oic.dir == LEFT && oic.object_info.pos.x + oic.width <= 0))
+					{
+						for (client& client : clients)
+						{
+							if (client.is_caught == oic.object_info.type)
+								client.is_caught = -1;
+							client.send_erase_object(oic);
+						}
 
-				if ((oic.dir == RIGHT && oic.object_info.pos.x >= WINDOWWIDTH) || (oic.dir == LEFT && oic.object_info.pos.x + oic.width <= 0))
+					}
+					break;
+				}
+				case SHARK:
+				{
+					if (oic.dir == RIGHT)
+						oic.object_info.pos.x += 7;
+					else if (oic.dir == LEFT)
+						oic.object_info.pos.x -= 7;
+
+					if ((oic.dir == RIGHT && oic.object_info.pos.x >= WINDOWWIDTH) || (oic.dir == LEFT && oic.object_info.pos.x + oic.width <= 0))
+					{
+						for (client& client : clients)
+						{
+							if (client.is_caught == oic.object_info.type)
+								client.is_caught = -1;
+							client.send_erase_object(oic);
+						}
+					}
+					break;
+				}
+				case HOOK:
+				{
+					if (!oic.b_hook)
+						oic.object_info.pos.y += 5;
+					else if (!oic.b_hook && oic.object_info.pos.y >= 0)
+						oic.b_hook = true;
+					else if (oic.b_hook)
+						oic.object_info.pos.y -= 5;
+
+					if (oic.b_hook && oic.object_info.pos.y < oic.height)
+					{
+						for (client& client : clients)
+						{
+							if (client.is_caught == oic.object_info.type)
+								client.is_caught = -1;
+							client.send_erase_object(oic);
+						}
+					}
+					break;
+				}
+				default:
+				{
+					break;
+				}
+				}
+				updateStart = chrono::system_clock::now();
+
+				// switch문 처리 후에도 살아있으면
+				if (oic.is_active && oic.object_info.type <= SHARK) // NET, HOOK, SHARK
 				{
 					for (client& client : clients)
-						client.send_erase_object(oic);
+						client.send_update_object(oic);
 				}
-				break;
-			}
-			case HOOK:
-			{
-				if (!oic.b_hook)
-					oic.object_info.pos.y += 5;
-				else if (!oic.b_hook && oic.object_info.pos.y >= 0)
-					oic.b_hook = true;
-				else if (oic.b_hook)
-					oic.object_info.pos.y -= 5;
-				
-				if (oic.b_hook && oic.object_info.pos.y < oic.height)
-				{
-					for (client& client : clients)
-						client.send_erase_object(oic);
-				}
-				break;
-			}
-			default:
-			{
-				break;
-			}
-			}
-			// switch문 처리 후에도 살아있으면
-			if (oic.is_active && oic.object_info.type <= SHARK) // NET, HOOK, SHARK
-			{
-				for (client& client : clients)
-					client.send_update_object(oic);
 			}
 		}
-	}
 
-	for (client& client : clients)
-		client.speed *= FISH_INIT_WIDTH / client.GetWidth();
+		for (client& client : clients)
+		{
+			switch (client.is_caught)
+			{
+			case NET:
+				client.SetX();
+				client.SetY();
+
+			}
+
+		}
+	}
 }
 
 void progress_Collision_pp(RECT tmp, client& cl_1, client& cl_2)
@@ -447,9 +474,9 @@ void progress_Collision_po(client &client, object_info_claculate &oic)
 	case HOOK:
 	{
 		cout << "충돌 : " << client.id << "번 플레이어, "<< oic.object_info.type << " : " << oic.object_info.id << endl;
-		client.is_caught = true;
+		client.is_caught = oic.object_info.type;
 		client.score -= OBSTACLE_SCORE;
-		client.ResetSize();
+		client.Reset();
 		
 		for (auto& cl : clients)
 		{
@@ -464,6 +491,7 @@ void progress_Collision_po(client &client, object_info_claculate &oic)
 
 		client.score += CRAB_SCORE;
 		client.SetSize(CRAB_SCORE);
+		client.speed *= FISH_INIT_WIDTH / client.GetWidth();
 		
 		for (auto& cl : clients)
 			cl.send_erase_object(oic);
