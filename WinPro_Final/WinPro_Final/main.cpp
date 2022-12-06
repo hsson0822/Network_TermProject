@@ -1,4 +1,5 @@
-﻿#pragma comment (lib, "msimg32.lib")
+﻿#define _CRT_SECURE_NO_WARNINGS
+#pragma comment (lib, "msimg32.lib")
 #pragma comment (lib, "winmm.lib")
 #pragma comment(lib,"ws2_32")
 
@@ -43,6 +44,7 @@ int id;
 BOOL isReady = false;
 BOOL isGameStart = false;
 long start_x{ -300 };
+RECT playButtonRect;
 
 Fish fish(0, 0);
 int fishSpeed = 5;
@@ -383,16 +385,35 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				ZeroMemory(send_buf, BUF_SIZE);
 				memcpy(send_buf, &send_packet, sizeof(send_packet));
 
-				// ---------------------------------
-				// 
-				//  게임 종료 화면으로 전환 필요
-				// 
-				// 
-				// ---------------------------------
-
+				//KillTimer(hWnd, 1);
+				KillTimer(hWnd, 2);
 
 				retval = send(sock, send_buf, sizeof(send_packet), 0);
 				if (retval == SOCKET_ERROR) err_display("disconnect game()");
+
+				TCHAR message[100];
+				//wsprintf(message, L"%d\n%d\n%d", players[0].GetScore(), players[1].GetScore(), players[2].GetScore());
+				wsprintf(message, L"%d\n%d\n%d", 0,0,0);
+				MessageBox(hWnd, message, L"게임 종료", MB_OK);
+
+
+				foods.clear();
+
+				hookRect = { 0,0,0,0 };
+				sharkRect = { 0,0,0,0 };
+				netRect = { 0,0,0,0 };
+
+				isGameStart = false;
+				isReady = false;
+
+				SetFishRect(fish, rect.right / 2 - 300, rect.bottom / 2);
+
+				for (int i = 0; i < MAX_USER; ++i)
+					players[i].SetIsActive(false);
+
+				playButtonRect = { rect.right / 2 - 100 , rect.bottom / 2 + 200 , rect.right / 2 + 100, rect.bottom / 2 + 300 };
+				
+				start_x = -100;
 
 				overload_packet_process(buf, sizeof(SC_GAME_OVER_PACKET), remain_packet);
 				break;
@@ -482,7 +503,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 
 	static HBITMAP playButton;
-	static RECT playButtonRect;
+
 
 	static HBITMAP loading;
 	static RECT loadingRect;
@@ -617,19 +638,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			if (caught)
 				break;
 		case VK_LEFT:
-			dir = LEFT_UP;
+			//dir = LEFT_UP;
 			fish.setXY(false);
 			fish.setLR(false);
 			fish.setMoveDir(4);
 			break;
 		case VK_RIGHT:
-			dir = RIGHT_UP;
+			//dir = RIGHT_UP;
 			fish.setXY(false);
 			fish.setLR(true);
 			fish.setMoveDir(4);
 			break;
 		case VK_UP:
-			dir = UP_UP;
+			//dir = UP_UP;
 			if (fish.isLR())
 			{
 				fish.setXY(false);
@@ -643,7 +664,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			fish.setMoveDir(4);
 			break;
 		case VK_DOWN:
-			dir = DOWN_UP;
+			//dir = DOWN_UP;
 			if (fish.isLR())
 			{
 				fish.setXY(false);
@@ -705,7 +726,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			else
 				CloseHandle(hThread);
 
-			playButtonRect = { 0,0,0,0 };
+			//playButtonRect = { 0,0,0,0 };
 		}
 
 		if (!isGameStart)
@@ -1025,7 +1046,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					}*/
 
 					// 클리어
-					if (fish.getAge() >= 30) {
+					/*if (fish.getAge() >= 30) {
 						KillTimer(hWnd, 1);
 						KillTimer(hWnd, 2);
 						KillTimer(hWnd, 3);
@@ -1034,7 +1055,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 						MessageBox(hWnd, L"개복치가 성장이 완료되었습니다!", L"Congratulations", MB_OK);
 						PlaySound(NULL, NULL, NULL);
 						PostQuitMessage(0);
-					}
+					}*/
 				}
 
 				break;
