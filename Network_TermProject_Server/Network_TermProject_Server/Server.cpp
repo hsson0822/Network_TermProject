@@ -1,4 +1,4 @@
-﻿ #include <winsock2.h>
+﻿#include <winsock2.h>
 #include <WS2tcpip.h>
 #include <iostream>
 #include <array>
@@ -24,12 +24,12 @@ public:
 	int score;
 	SOCKET sock;
 
-	 
+
 public:
 	client() {
 		Reset();
-	} 
-	~client() {}; 
+	}
+	~client() {};
 
 	void Reset() {
 		sock = 0;
@@ -178,7 +178,7 @@ void makeFood()
 			col_x = SQUID_WIDTH;
 			col_y = SQUID_HEIGHT;
 		}
-		else
+		else if(foodKinds == JELLYFISH)
 		{
 			//해파리
 			packet.object.type = JELLYFISH;
@@ -250,7 +250,10 @@ void makeObstacle()
 			//그물
 			packet.object.type = NET;
 
-			randX = rand() % 1800;
+			if (obstacledir == LEFT)
+				randX = WINDOWWIDTH;
+			else
+				randX = -400;
 			randY = 0;
 			col_x = NET_WIDTH;
 			col_y = NET_HEIGHT;
@@ -270,7 +273,10 @@ void makeObstacle()
 			//상어
 			packet.object.type = SHARK;
 
-			randX = 0;
+			if (obstacledir == LEFT)
+				randX = WINDOWWIDTH;
+			else
+				randX = -100;
 			randY = rand() % 1000;
 			col_x = SHARK_WIDTH;
 			col_y = SHARK_HEIGHT;
@@ -409,7 +415,7 @@ void updateObjects()
 void progress_Collision_pp(RECT tmp, client& cl_1, client& cl_2)
 {
 	cout << cl_1.id << "번 플레이어와" << cl_2.id << "번 플레이어가 " << tmp.right - tmp.left << " x " << tmp.bottom - tmp.top << " 크기만큼 충돌" << endl;
-	
+
 	if (cl_1.GetWidth() > cl_2.GetWidth())
 	{
 		// rect가 
@@ -465,7 +471,7 @@ void progress_Collision_pp(RECT tmp, client& cl_1, client& cl_2)
 	}
 }
 
-void progress_Collision_po(client &client, object_info_claculate &oic)
+void progress_Collision_po(client& client, object_info_claculate& oic)
 {
 	switch (oic.object_info.type)
 	{
@@ -503,7 +509,7 @@ void progress_Collision_po(client &client, object_info_claculate &oic)
 		cout << "충돌 : " << client.id << "번 플레이어, 오징어 : " << oic.object_info.id << endl;
 		client.score += SQUID_SCORE;
 		client.SetSize(SQUID_SCORE);
-		
+
 		for (auto& cl : clients)
 			cl.send_erase_object(oic);
 
@@ -514,7 +520,7 @@ void progress_Collision_po(client &client, object_info_claculate &oic)
 		cout << "충돌 : " << client.id << "번 플레이어, 해파리" << endl;
 		client.score += JELLYFISH_SCORE;
 		client.SetSize(JELLYFISH_SCORE);
-		
+
 		for (auto& cl : clients)
 			cl.send_erase_object(oic);
 
@@ -578,7 +584,7 @@ DWORD WINAPI CalculateThread(LPVOID arg)
 
 	while (duration < TIME_LIMIT)
 	{
-			
+
 		// 플레이어가 한명이라도 있어야만 계산쓰레드가 작동하도록 함
 		if (id > 0) {
 			makeFood();
@@ -599,7 +605,7 @@ DWORD WINAPI CalculateThread(LPVOID arg)
 	// 종료 패킷 전송
 	SC_GAME_OVER_PACKET packet;
 	packet.type = SC_GAME_OVER;
-	for(int i = 0; i < MAX_USER; ++i)
+	for (int i = 0; i < MAX_USER; ++i)
 		packet.scores[i] = clients[i].score;
 
 	for (auto& c : clients) {
@@ -779,7 +785,7 @@ DWORD WINAPI RecvThread(LPVOID arg)
 				if (ready_count == MAX_USER) {
 					SC_GAME_START_PACKET packet;
 					packet.type = SC_GAME_START;
-					
+
 					short x, y;
 
 					for (int i = 0; i < MAX_USER; ++i) {
@@ -824,8 +830,8 @@ DWORD WINAPI RecvThread(LPVOID arg)
 	closesocket(client_socket);
 
 	return 0;
-} 
- 
+}
+
 int main(int argc, char* argv[])
 {
 	WSADATA wsa;
@@ -850,7 +856,7 @@ int main(int argc, char* argv[])
 		err_display("bind()");
 		return 1;
 	}
-	 
+
 	retval = listen(listen_sock, SOMAXCONN);
 	if (SOCKET_ERROR == retval) {
 		err_display("listen()");
@@ -865,7 +871,7 @@ int main(int argc, char* argv[])
 	// 동기화 cs, event 초기화
 	InitializeCriticalSection(&id_cs);
 	InitializeCriticalSection(&cs);
-	 
+
 	while (true) {
 
 		// 3명을 받으면 accept 를 종료하고 다른일을 하도록 추가할 예정
@@ -885,7 +891,7 @@ int main(int argc, char* argv[])
 		c_info.client_id = id++;
 		LeaveCriticalSection(&id_cs);
 		c_info.sock = client_socket;
-		 
+
 		hThread = CreateThread(nullptr, 0, RecvThread,
 			reinterpret_cast<LPVOID>(&c_info), 0, nullptr);
 		if (!hThread)
@@ -897,7 +903,7 @@ int main(int argc, char* argv[])
 
 	DeleteCriticalSection(&id_cs);
 	DeleteCriticalSection(&cs);
-	
+
 
 	closesocket(listen_sock);
 	WSACleanup();
