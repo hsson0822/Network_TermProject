@@ -148,7 +148,6 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				short x = packet->object.pos.x;
 				short y = packet->object.pos.y;
 
-
 				switch (eventNum)
 				{
 				case NET:
