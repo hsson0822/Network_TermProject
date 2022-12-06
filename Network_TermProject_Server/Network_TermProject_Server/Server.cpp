@@ -66,6 +66,7 @@ public:
 
 	void send_erase_object(object_info_claculate& oic);
 	void send_update_object(object_info_claculate& oic);
+	void send_update_object(client& cl);
 
 	void send_add_player(int id);
 };
@@ -128,6 +129,20 @@ void client::send_update_object(object_info_claculate& oic)
 
 	send_packet(&packet, sizeof(SC_UPDATE_OBJECT_PACKET));
 }
+
+void client::send_update_object(client& cl)
+{
+	SC_UPDATE_PLAYER_PACKET packet{};
+
+	packet.type = SC_UPDATE_PLAYER_WH;
+
+	packet.w = cl.GetWidth();
+	packet.h = cl.GetHeight();
+	packet.id = cl.id;
+
+	send_packet(&packet, sizeof(SC_UPDATE_PLAYER_PACKET));
+}
+
 
 
 void overload_packet_process(char* buf, int packet_size, int& remain_packet)
@@ -196,6 +211,7 @@ void makeFood()
 		{
 			if (!oic.is_active)
 			{
+				cout << id_oic << endl;
 				id_oic++;
 				oic.object_info.id = id_oic;
 				oic.is_active = true;
@@ -206,7 +222,6 @@ void makeFood()
 				oic.height = col_y;
 				break;
 			}
-			cout << id_oic << endl;
 		}
 		packet.index = id_oic;
 
@@ -337,7 +352,10 @@ void updateObjects()
 						for (client& client : clients)
 						{
 							if (client.is_caught == oic.object_info.type)
+							{
 								client.is_caught = -1;
+								client.ResetSizeSpeed();
+							}
 							client.send_erase_object(oic);
 						}
 
@@ -356,7 +374,10 @@ void updateObjects()
 						for (client& client : clients)
 						{
 							if (client.is_caught == oic.object_info.type)
+							{
 								client.is_caught = -1;
+								client.ResetSizeSpeed();
+							}
 							client.send_erase_object(oic);
 						}
 					}
@@ -376,7 +397,10 @@ void updateObjects()
 						for (client& client : clients)
 						{
 							if (client.is_caught == oic.object_info.type)
+							{
 								client.is_caught = -1;
+								client.ResetSizeSpeed();
+							}
 							client.send_erase_object(oic);
 						}
 					}
@@ -475,12 +499,6 @@ void progress_Collision_po(client& client, object_info_claculate& oic)
 		cout << "충돌 : " << client.id << "번 플레이어, "<< oic.object_info.type << " : " << oic.object_info.id << endl;
 		client.is_caught = oic.object_info.type;
 		client.score -= OBSTACLE_SCORE;
-		client.ResetSizeSpeed();
-		
-		for (auto& cl : clients)
-		{
-			cl.send_erase_object(oic);
-		}
 
 		break;
 	}
@@ -493,7 +511,10 @@ void progress_Collision_po(client& client, object_info_claculate& oic)
 		client.speed *= FISH_INIT_WIDTH / client.GetWidth();
 		
 		for (auto& cl : clients)
+		{
 			cl.send_erase_object(oic);
+			cl.send_update_object(client);
+		}
 
 		break;
 	}
@@ -504,7 +525,11 @@ void progress_Collision_po(client& client, object_info_claculate& oic)
 		client.SetSize(SQUID_SCORE);
 
 		for (auto& cl : clients)
+		{
 			cl.send_erase_object(oic);
+			cl.send_update_object(client);
+		}
+			
 
 		break;
 	}
@@ -515,7 +540,10 @@ void progress_Collision_po(client& client, object_info_claculate& oic)
 		client.SetSize(JELLYFISH_SCORE);
 
 		for (auto& cl : clients)
+		{
 			cl.send_erase_object(oic);
+			cl.send_update_object(client);
+		}
 
 		break;
 	}
@@ -540,7 +568,7 @@ void collision()
 {
 	for (client& cl_1 : clients)
 	{
-		if (cl_1.id != -1 && !cl_1.is_caught)
+		if (cl_1.id != -1)
 		{
 			RECT tmp{};
 			RECT playerRect_1 = RECT{ cl_1.GetX(), cl_1.GetY(), cl_1.GetX() + cl_1.GetWidth(), cl_1.GetY() + cl_1.GetHeight() };
@@ -555,7 +583,7 @@ void collision()
 			}
 			for (client& cl_2 : clients)
 			{
-				if (cl_2.id != -1 && cl_2.id != cl_1.id && !cl_2.is_caught)
+				if (cl_2.id != -1 && cl_2.id != cl_1.id)
 				{
 					RECT playerRect_2 = RECT{ cl_2.GetX(), cl_2.GetY(), cl_2.GetX() + cl_2.GetWidth(), cl_2.GetY() + cl_2.GetHeight() };
 					if (IntersectRect(&tmp, &playerRect_1, &playerRect_2))
@@ -692,7 +720,7 @@ DWORD WINAPI RecvThread(LPVOID arg)
 				cl.SetY(y);
 
 
-				std::cout << "x : " << x << ", y : " << y << ",  speed : " << cl.speed << std::endl;
+				std::cout << "x : " << x << ", y : " << y << ",  speed : " << cl.speed << ", is_caught : " << cl.is_caught << std::endl;
 
 				SC_MOVE_PACKET packet;
 				packet.id = this_id;

@@ -51,6 +51,7 @@ enum PacketType {
 	SC_LEAVE_PLAYER,
 	CS_DISCONNECT,
 	SC_UPDATE_OBSTACLE,
+	SC_UPDATE_PLAYER_WH
 };
 
 // 오브젝트 type 구분
@@ -187,6 +188,12 @@ struct SC_ACCEPT_PACKET {		// 접속한 클라이언트 본인이 받을 패킷, 이 구조체의 id
 struct SC_ADD_PLAYER_PACKET {	// 기존에 접속해있던 다른 클라이언트들이 받을 패킷
 	char type;
 	int id;
+};
+
+struct SC_UPDATE_PLAYER_PACKET {	// 플레이어 너비 높이 변경
+	char type;
+	int id;
+	short w, h;
 };
 
 //// 아래는 먹이, 장애물 생성 제거 패킷

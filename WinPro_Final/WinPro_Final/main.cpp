@@ -249,8 +249,41 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				cout << "SC_UPDATE_OBSTACLE" << endl;
 				SC_UPDATE_OBJECT_PACKET* packet = reinterpret_cast<SC_UPDATE_OBJECT_PACKET*>(buf);
 
+				short x = packet->oi.pos.x;
+				short y = packet->oi.pos.y;
+
+
+				switch (packet->oi.type)
+				{
+				case NET:
+					if (netDir == RIGHT)
+						netRect = { x - NET_WIDTH, y, x, y + NET_HEIGHT };
+					else
+						netRect = { x, y, x + NET_WIDTH, y + NET_HEIGHT };
+					break;
+				case SHARK:
+					sharkRect = RECT{};
+					break;
+				case HOOK:
+					hookRect = RECT{ 0,0,0,0 };
+					break;
+				}
 
 				overload_packet_process(buf, sizeof(SC_UPDATE_OBJECT_PACKET), remain_packet);
+				break;
+			}
+
+			case SC_UPDATE_PLAYER_WH:
+			{
+				cout << "SC_UPDATE_PLAYER_WH" << endl;
+				SC_UPDATE_PLAYER_PACKET* packet = reinterpret_cast<SC_UPDATE_PLAYER_PACKET*>(buf);
+
+				short w = packet->w;
+				short h = packet->h;
+
+				cout << packet->id <<"번 플레이어 w : " << w << ", h : " << h << endl;
+
+				overload_packet_process(buf, sizeof(SC_UPDATE_PLAYER_PACKET), remain_packet);
 				break;
 			}
 
