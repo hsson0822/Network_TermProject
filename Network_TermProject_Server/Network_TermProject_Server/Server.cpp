@@ -17,7 +17,7 @@ private:
 
 public:
 	bool is_ready;
-	int is_caught;
+	int is_caught = -1;
 	bool is_pulled;
 	int id;			// 클라이언트 구분용 id
 	int speed;
@@ -48,7 +48,7 @@ public:
 	void SetX(short pos_x) { x = pos_x; }
 	void SetY(short pos_y) { y = pos_y; }
 	void SetSize(short si) { width += si; height += si; }
-	void Reset() { width = FISH_INIT_WIDTH; height = FISH_INIT_HEIGHT; speed = 5; }
+	void ResetSizeSpeed() { width = FISH_INIT_WIDTH; height = FISH_INIT_HEIGHT; speed = 5; }
 
 	short GetX() const { return x; };
 	short GetY() const { return y; };
@@ -400,13 +400,6 @@ void updateObjects()
 
 		for (client& client : clients)
 		{
-			switch (client.is_caught)
-			{
-			case NET:
-				client.SetX();
-				client.SetY();
-
-			}
 
 		}
 	}
@@ -482,7 +475,7 @@ void progress_Collision_po(client& client, object_info_claculate& oic)
 		cout << "충돌 : " << client.id << "번 플레이어, "<< oic.object_info.type << " : " << oic.object_info.id << endl;
 		client.is_caught = oic.object_info.type;
 		client.score -= OBSTACLE_SCORE;
-		client.Reset();
+		client.ResetSizeSpeed();
 		
 		for (auto& cl : clients)
 		{
@@ -580,7 +573,7 @@ DWORD WINAPI CalculateThread(LPVOID arg)
 	int duration{};
 	foodStart = chrono::system_clock::now();
 	obstacleStart = chrono::system_clock::now();
-	playerMoveStart = chrono::system_clock::now();
+	updateStart = chrono::system_clock::now();
 
 	while (duration < TIME_LIMIT)
 	{
@@ -673,52 +666,50 @@ DWORD WINAPI RecvThread(LPVOID arg)
 
 				client& cl = clients[this_id];
 
-				if (!cl.is_caught)
-				{
-					short x = cl.GetX();
-					short y = cl.GetY();
+				short x = cl.GetX();
+				short y = cl.GetY();
 
-					// 방향에 따라 x, y 값이 속도만큼 변함
-					switch (move_packet->dir) {
-					case LEFT_DOWN:
-						x -= cl.speed;
-						break;
-					case RIGHT_DOWN:
-						x += cl.speed;
-						break;
-					case UP_DOWN:
-						y -= cl.speed;
-						break;
-					case DOWN_DOWN:
-						y += cl.speed;
-						break;
-					}
-
-					// 충돌처리 부분 필요
-
-					// 서버의 클라이언트 정보에 이동한 좌표값 최신화
-					cl.SetX(x);
-					cl.SetY(y);
-
-
-					std::cout << "x : " << x << ", y : " << y << ",  speed : " << cl.speed << std::endl;
-
-					SC_MOVE_PACKET packet;
-					packet.id = this_id;
-					packet.type = SC_PLAYER_MOVE;
-					packet.pos.x = x;
-					packet.pos.y = y;
-
-					// 내 이동 정보를 모든 클라이언트에 전송
-					for (auto& client : clients) {
-						if (client.id == -1)
-							continue;
-						client.send_packet(&packet, sizeof(packet));
-					}
-
-					overload_packet_process(buf, sizeof(CS_MOVE_PACKET), remain_packet);
+				// 방향에 따라 x, y 값이 속도만큼 변함
+				switch (move_packet->dir) {
+				case LEFT_DOWN:
+					x -= cl.speed;
+					break;
+				case RIGHT_DOWN:
+					x += cl.speed;
+					break;
+				case UP_DOWN:
+					y -= cl.speed;
+					break;
+				case DOWN_DOWN:
+					y += cl.speed;
 					break;
 				}
+
+				// 충돌처리 부분 필요
+				
+				// 서버의 클라이언트 정보에 이동한 좌표값 최신화
+				cl.SetX(x);
+				cl.SetY(y);
+
+
+				std::cout << "x : " << x << ", y : " << y << ",  speed : " << cl.speed << std::endl;
+
+				SC_MOVE_PACKET packet;
+				packet.id = this_id;
+				packet.type = SC_PLAYER_MOVE;
+				packet.pos.x = x;
+				packet.pos.y = y;
+
+				// 내 이동 정보를 모든 클라이언트에 전송
+				for (auto& client : clients) {
+					if (client.id == -1)
+						continue;
+					client.send_packet(&packet, sizeof(packet));
+				}
+
+				overload_packet_process(buf, sizeof(CS_MOVE_PACKET), remain_packet);
+				break;
+
 			}
 
 			case CS_LBUTTONCLICK: {
