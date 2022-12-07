@@ -64,10 +64,10 @@ void Fish::setUD(bool ud) { goUD = ud; }
 
 void Fish::Move(short posX, short posY)
 {
-	if (posX > x)
+	/*if (posX > x)
 		goLR = true;
 	else if(posX < x)
-		goLR = false;
+		goLR = false;*/
 
 	x = posX;
 	y = posY;

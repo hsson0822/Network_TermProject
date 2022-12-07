@@ -236,7 +236,7 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 			}
 			case SC_UPDATE_OBSTACLE:
 			{
-				cout << "SC_UPDATE_OBSTACLE" << endl;
+				//cout << "SC_UPDATE_OBSTACLE" << endl;
 				SC_UPDATE_OBJECT_PACKET* packet = reinterpret_cast<SC_UPDATE_OBJECT_PACKET*>(buf);
 
 				short x = packet->oi.pos.x;
@@ -355,7 +355,7 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				isGameStart = true;
 				overload_packet_process(buf, sizeof(SC_GAME_START_PACKET), remain_packet);
 				//SetTimer(hWnd, 2, 70, NULL);	// 먹이 낙하
-				SetTimer(hWnd, 3, 70, NULL);	// 물고기 이동 / 먹이 섭취
+				SetTimer(hWnd, 3, 50, NULL);	// 물고기 이동 / 먹이 섭취
 				//SetTimer(hWnd, 4, 30000, NULL);	// 이벤트 생성 30초
 				//SetTimer(hWnd, 5, 70, NULL);	// 이벤트 진행
 
@@ -372,7 +372,7 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				int other_id = packet->id;
 
 				if (other_id == id) {
-					fish.Move(packet->pos.x, packet->pos.y);
+					//fish.Move(packet->pos.x, packet->pos.y);
 				}
 				else {
 					players[other_id].Move(packet->pos.x, packet->pos.y);
@@ -659,56 +659,36 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			if (isCaught)
 				break;
 		case VK_LEFT:
-			fish.setXY(false);
-			fish.setLR(false);
-			fish.setMoveDir(4);
+			dir = LEFT_DOWN;
 			break;
 		case VK_RIGHT:
-			fish.setXY(false);
-			fish.setLR(true);
-			fish.setMoveDir(4);
+			dir = RIGHT_DOWN;
 			break;
 		case VK_UP:
-			if (fish.isLR())
-			{
-				fish.setXY(false);
-				fish.setLR(true);
-			}
-			else
-			{
-				fish.setXY(false);
-				fish.setLR(false);
-			}
-			fish.setMoveDir(4);
+			dir = UP_DOWN;
 			break;
 		case VK_DOWN:
-			if (fish.isLR())
-			{
-				fish.setXY(false);
-				fish.setLR(true);
-			}
-			else
-			{
-				fish.setXY(false);
-				fish.setLR(false);
-			}
-			fish.setMoveDir(4);
+			dir = DOWN_DOWN;
 			break;
 		}
 
-		/*if (dir != -1) {
-			CS_MOVE_PACKET packet;
-			packet.type = CS_PLAYER_MOVE;
-			packet.dir = dir;
+		if (dir != -1) {
+			fish.setMoveDir(4);
+
+			CS_INTERPOLATION_PACKET packet;
+			packet.type = CS_INTERPOLATION;
+			packet.x = fish.GetX();
+			packet.y = fish.GetY();
 
 			char send_buf[BUF_SIZE];
 			ZeroMemory(send_buf, BUF_SIZE);
 			memcpy(send_buf, &packet, sizeof(packet));
 
+
 			retval = send(sock, send_buf, sizeof(packet), 0);
 			if (retval == SOCKET_ERROR) err_display("move key up send()");
-		}*/
-
+		}
+		
 		break;
 	}
 
@@ -973,33 +953,40 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		case 3:
 			if (!isCaught)
 			{
+				float move_speed = 50;
+				float duration = 5;
+				float x, y;
 				if (fish.getMoveDir() == 0)
 				{
 					//왼쪽
-					fish.setRect(RECT{ fish.getRect().left,fish.getRect().top, fish.getRect().right, fish.getRect().bottom });
-					if (fish.getRect().left < rect.left)
-						fish.setRect(RECT{ fish.getRect().left,fish.getRect().top, fish.getRect().right, fish.getRect().bottom });
+					x = fish.GetX();
+					y = fish.GetY();
+					x -= move_speed / duration;
+					fish.Move((short)x, (short)y);
 				}
 				else if (fish.getMoveDir() == 1)
 				{
 					//오른쪽
-					fish.setRect(RECT{ fish.getRect().left,fish.getRect().top, fish.getRect().right, fish.getRect().bottom });
-					if (fish.getRect().right > rect.right)
-						fish.setRect(RECT{ fish.getRect().left,fish.getRect().top, fish.getRect().right, fish.getRect().bottom });
+					x = fish.GetX();
+					y = fish.GetY();
+					x += move_speed / duration;
+					fish.Move((short)x, (short)y);
 				}
 				else if (fish.getMoveDir() == 2)
 				{
 					//위
-					fish.setRect(RECT{ fish.getRect().left,fish.getRect().top, fish.getRect().right, fish.getRect().bottom });
-					if (fish.getRect().top < rect.top)
-						fish.setRect(RECT{ fish.getRect().left,fish.getRect().top, fish.getRect().right, fish.getRect().bottom });
+					x = fish.GetX();
+					y = fish.GetY();
+					y -= move_speed / duration;
+					fish.Move((short)x, (short)y);
 				}
 				else if (fish.getMoveDir() == 3)
 				{
 					//아래
-					fish.setRect(RECT{ fish.getRect().left,fish.getRect().top, fish.getRect().right, fish.getRect().bottom });
-					if (fish.getRect().bottom > rect.bottom - 80)
-						fish.setRect(RECT{ fish.getRect().left,fish.getRect().top, fish.getRect().right, fish.getRect().bottom });
+					x = fish.GetX();
+					y = fish.GetY();
+					y += move_speed / duration;
+					fish.Move((short)x, (short)y);
 				}
 			}
 			else

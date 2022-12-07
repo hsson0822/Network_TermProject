@@ -51,7 +51,8 @@ enum PacketType {
 	SC_LEAVE_PLAYER,
 	CS_DISCONNECT,
 	SC_UPDATE_OBSTACLE,
-	SC_UPDATE_PLAYER_WH
+	SC_UPDATE_PLAYER_WH,
+	CS_INTERPOLATION
 };
 
 // 오브젝트 type 구분
@@ -225,5 +226,10 @@ struct SC_LEAVE_PLAYER_PACKET {
 
 struct CS_DISCONNECT_PACKET {
 	char type;
+};
+
+struct CS_INTERPOLATION_PACKET {
+	char type;
+	short x, y;
 };
 #pragma pack(pop)
