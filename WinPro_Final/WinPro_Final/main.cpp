@@ -228,18 +228,7 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				SC_ERASE_OBJECT_PACKET* packet = reinterpret_cast<SC_ERASE_OBJECT_PACKET*>(buf);
 				cout << packet->index << ", " << packet->object_type << endl;
 
-				switch (packet->object_type)
-				{
-				case NET:
-					netRect = RECT{ 0,0,0,0 };
-					break;
-				case SHARK:
-					sharkRect = RECT{ 0,0,0,0 };
-					break;
-				case HOOK:
-					hookRect = RECT{ 0,0,0,0 };
-					break;
-				}
+				eventNum = -1;
 
 				overload_packet_process(buf, sizeof(SC_ERASE_OBJECT_PACKET), remain_packet);
 				break;
@@ -518,7 +507,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	static int randX, randY;
 	static POINT mousePoint;
 
-	static BOOL caught;
+	static BOOL isCaught;
 	static int eventClick;
 	static BOOL eventOut;
 
@@ -578,7 +567,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		loadingRect = { rect.right / 2 - 50 , rect.bottom / 2 + 200 , rect.right / 2 + 100, rect.bottom / 2 + 300 };
 		loadingCount = 0;
 
-		caught = false;
+		isCaught = false;
 		eventNum = 5;
 		eventOut = false;
 
@@ -597,10 +586,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		if (!isGameStart)
 			break;
 
+		if (isCaught)
+			break;
+
 		char dir = -1;
 		switch (wParam)
 		{
-			if (caught)
+			if (isCaught)
 				break;
 		case VK_LEFT:
 			dir = LEFT_DOWN;
@@ -657,7 +649,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 		switch (wParam)
 		{
-			if (caught)
+			if (isCaught)
 				break;
 		case VK_LEFT:
 			fish.setXY(false);
@@ -836,7 +828,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			StretchBlt(memDC1, 0, 0, rect.right, rect.bottom, memDC2, 0, 0, 256, 192, SRCCOPY);
 
 			//물고기
-			if (!caught)
+			if (!isCaught)
 			{
 				if (!eventOut || angryCount > 30) { // 평상시
 					oldBit2 = (HBITMAP)SelectObject(memDC2, normalImage);
@@ -928,7 +920,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				break;
 			}
 
-			if (caught)
+			if (isCaught)
 			{
 				if (fish.getRect().right < rect.left || fish.getRect().bottom < rect.top || fish.getRect().left > rect.right || fish.getRect().top > rect.bottom)
 				{
@@ -968,7 +960,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 			//물고기 이동 및 먹이 섭취
 		case 3:
-			if (!caught)
+			if (!isCaught)
 			{
 				if (fish.getMoveDir() == 0)
 				{
@@ -1025,7 +1017,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				}
 			}*/
 
-				if (!caught)
+				if (!isCaught)
 				{
 					/*for (vector<Food*>::iterator iter = foods.begin(); iter != foods.end(); ++iter)
 					{
@@ -1088,13 +1080,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 						netRect = { netRect.left, netRect.top, netRect.right,netRect.bottom };
 					}
 
-					if (!caught && !eventOut)
+					if (!isCaught && !eventOut)
 					{
 						RECT temp;
 						RECT fishRect = RECT{ fish.getRect().left, fish.getRect().top + (fish.getHeight() / 10 * 2), fish.getRect().right, fish.getRect().bottom - (fish.getHeight() / 10 * 2) };
 						if (IntersectRect(&temp, &netRect, &fishRect))
 						{
-							caught = true;
+							isCaught = true;
 						}
 					}
 					break;
@@ -1111,14 +1103,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					}
 					++hookCount;
 
-					if (!caught && !eventOut)
+					if (!isCaught && !eventOut)
 					{
 						RECT temp;
 						RECT fishRect = RECT{ fish.getRect().left, fish.getRect().top + (fish.getHeight() / 10 * 2), fish.getRect().right, fish.getRect().bottom - (fish.getHeight() / 10 * 2) };
 						RECT hookR = RECT{ hookRect.left,hookRect.top + 240,hookRect.right - 40,hookRect.bottom };
 						if (IntersectRect(&temp, &hookR, &fishRect))
 						{
-							caught = true;
+							isCaught = true;
 							hookCount = 201;
 						}
 					}
@@ -1139,25 +1131,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					if (sharkWave < 12)
 					{
 						sharkRect = { sharkRect.left, sharkRect.top + 2, sharkRect.right,sharkRect.bottom + 2 };
-						if (caught)
+						if (isCaught)
 							fish.setRect(RECT{ fish.getRect().left,fish.getRect().top + 2, fish.getRect().right, fish.getRect().bottom + 2 });
 					}
 					else if (sharkWave < 24)
 					{
 						sharkRect = { sharkRect.left, sharkRect.top - 2, sharkRect.right,sharkRect.bottom - 2 };
-						if (caught)
+						if (isCaught)
 							fish.setRect(RECT{ fish.getRect().left,fish.getRect().top - 2, fish.getRect().right, fish.getRect().bottom - 2 });
 					}
 					else
 						sharkWave = 0;*/
 
-				if (!caught && !eventOut)
+				if (!isCaught && !eventOut)
 				{
 					RECT temp;
 					RECT fishRect = RECT{ fish.getRect().left, fish.getRect().top + (fish.getHeight() / 10 * 2), fish.getRect().right, fish.getRect().bottom - (fish.getHeight() / 10 * 2) };
 					if (IntersectRect(&temp, &sharkRect, &fishRect))
 					{
-						caught = true;
+						isCaught = true;
 					}
 				}
 				break;
