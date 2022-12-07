@@ -160,6 +160,7 @@
   <ItemGroup>
     <Image Include="age.bmp" />
     <Image Include="angry124.159.bmp" />
+    <Image Include="arrow816.1083.bmp" />
     <Image Include="back1.bmp" />
     <Image Include="back2.bmp" />
     <Image Include="back3.bmp" />

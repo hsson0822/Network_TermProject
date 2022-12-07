@@ -271,7 +271,7 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				short w = packet->w;
 				short h = packet->h;
 
-				cout << packet->id <<"번 플레이어 w : " << w << ", h : " << h << endl;
+				cout << packet->id << "번 플레이어 w : " << w << ", h : " << h << endl;
 
 				if (id == packet->id)
 					fish.setWH(packet->w, packet->h);
@@ -410,7 +410,7 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 
 				TCHAR message[100];
 				//wsprintf(message, L"%d\n%d\n%d", players[0].GetScore(), players[1].GetScore(), players[2].GetScore());
-				wsprintf(message, L"%d\n%d\n%d", 0,0,0);
+				wsprintf(message, L"%d\n%d\n%d", 0, 0, 0);
 				MessageBox(hWnd, message, L"게임 종료", MB_OK);
 
 
@@ -429,7 +429,7 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 					players[i].SetIsActive(false);
 
 				playButtonRect = { rect.right / 2 - 100 , rect.bottom / 2 + 200 , rect.right / 2 + 100, rect.bottom / 2 + 300 };
-				
+
 				start_x = -100;
 
 				overload_packet_process(buf, sizeof(SC_GAME_OVER_PACKET), remain_packet);
@@ -504,7 +504,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	static int selectBack;
 
-
+	static HBITMAP arrow;
 
 	static int foodKinds;
 	static int foodCount;
@@ -549,6 +549,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		hook = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_HOOK));
 		shark = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_SHARK));
 		foodButtonImage = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_FOOD));
+		arrow = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_ARROW));
 
 		obs1 = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_OBS));
 		obs2 = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_OBS2));
@@ -832,6 +833,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			//배경화면
 			oldBit2 = (HBITMAP)SelectObject(memDC2, back1);
 			StretchBlt(memDC1, 0, 0, rect.right, rect.bottom, memDC2, 0, 0, 256, 192, SRCCOPY);
+
+			oldBit2 = (HBITMAP)SelectObject(memDC2, arrow);
+			TransparentBlt(memDC1, fish.getRect().left + fish.getWidth() / 3, fish.getRect().top - 30, 30, 50, memDC2, 0, 0, 816, 1083, RGB(255, 255, 255));
+
 
 			//물고기
 			if (!isCaught)
