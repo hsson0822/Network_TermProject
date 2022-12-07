@@ -59,6 +59,7 @@ public:
 	void SetX(short posX) { x = posX; }
 	void SetY(short posY) { y = posY; }
 	void SetIsActive(bool active) { is_active = active; }
+	void setWH(int w, int h) { width = w; height = h; }
 	void SetScore(int value) { score = value; }
 	short GetX() const { return x; };
 	short GetY() const { return y; };

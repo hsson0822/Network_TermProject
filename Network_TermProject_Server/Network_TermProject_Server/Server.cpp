@@ -20,7 +20,7 @@ public:
 	int is_caught = -1;
 	bool is_pulled;
 	int id;			// 클라이언트 구분용 id
-	int speed;
+	double speed;
 	int score;
 	SOCKET sock;
 
@@ -422,10 +422,6 @@ void updateObjects()
 			}
 		}
 
-		for (client& client : clients)
-		{
-
-		}
 	}
 }
 
@@ -508,7 +504,7 @@ void progress_Collision_po(client& client, object_info_claculate& oic)
 
 		client.score += CRAB_SCORE;
 		client.SetSize(CRAB_SCORE);
-		client.speed *= FISH_INIT_WIDTH / client.GetWidth();
+		client.speed *= FISH_INIT_WIDTH / (double)client.GetWidth();
 		
 		for (auto& cl : clients)
 		{

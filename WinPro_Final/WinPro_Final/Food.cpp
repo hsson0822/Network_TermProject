@@ -1,6 +1,6 @@
 #include "Food.h"
 
-Food::Food(int k, int x, int y, int w, int h, int m, int id) :fishKinds{ k }, x { x }, y{ y }, width{ w }, height{ h }, moveCount{ 0 }, maxAnimCount{ m }, id{-1}
+Food::Food(int k, int x, int y, int w, int h, int m, int id) :fishKinds{ k }, x { x }, y{ y }, width{ w }, height{ h }, moveCount{ 0 }, maxAnimCount{ m }, id{id}
 {
 }
 

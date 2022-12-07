@@ -183,17 +183,17 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				short y = packet->object.pos.y;
 				switch (packet->object.type) {
 				case JELLYFISH:
-					foods.push_back(new Food(0, x, y, 27, 30, 4, packet->index));
+					foods.push_back(new Food(JELLYFISH, x, y, 27, 30, 4, packet->index));
 					cout << "해파리, " << packet->index << endl;
 					break;
 
 				case CRAB:
-					foods.push_back(new Food(1, x, y, 85, 61, 2, packet->index));
+					foods.push_back(new Food(CRAB, x, y, 85, 61, 2, packet->index));
 					cout << "게, " << packet->index << endl;
 					break;
 
 				case SQUID:
-					foods.push_back(new Food(2, x, y, 47, 72, 10, packet->index));
+					foods.push_back(new Food(SQUID, x, y, 47, 72, 10, packet->index));
 					cout << "오징어, " << packet->index << endl;
 					break;
 
@@ -208,18 +208,19 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				SC_ERASE_OBJECT_PACKET* packet = reinterpret_cast<SC_ERASE_OBJECT_PACKET*>(buf);
 				int id = packet->index;
 				cout << packet->index << ", " << packet->object_type << endl;
-				/*auto erase = find_if(foods.begin(), foods.end(), [&id](Food* f) {
-					if (f->getId() == id)
+				
+				for (vector<Food*>::iterator iter = foods.begin(); iter != foods.end(); ++iter)
+				{
+					if ((*iter)->getId() == packet->index)
 					{
-						f->eraseFishKinds();
-						return true;
+						(*iter)->eraseFishKinds();
 					}
-					else
-						return false;
-					});*/
+
+					if (iter == foods.end())
+						break;
+				}
 
 				overload_packet_process(buf, sizeof(SC_ERASE_OBJECT_PACKET), remain_packet);
-
 				break;
 			}
 			case SC_ERASE_OBSTACLE:
@@ -271,6 +272,11 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				short h = packet->h;
 
 				cout << packet->id <<"번 플레이어 w : " << w << ", h : " << h << endl;
+
+				if (id == packet->id)
+					fish.setWH(packet->w, packet->h);
+				else
+					players[packet->id].setWH(packet->w, packet->h);
 
 				overload_packet_process(buf, sizeof(SC_UPDATE_PLAYER_PACKET), remain_packet);
 				break;
@@ -868,17 +874,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			for (auto* f : foods)
 			{
 				
-				if (f->getFishKinds() == 0)
+				if (f->getFishKinds() == JELLYFISH)
 				{
 					oldBit2 = (HBITMAP)SelectObject(memDC2, jelly);
 					TransparentBlt(memDC1, f->getX(), f->getY(), 27, 30, memDC2, 27 * f->getMoveCount(), 0, 27, 30, RGB(255, 1, 1));
 				}
-				else if (f->getFishKinds() == 1)
+				else if (f->getFishKinds() == CRAB)
 				{
 					oldBit2 = (HBITMAP)SelectObject(memDC2, crab);
 					TransparentBlt(memDC1, f->getX(), f->getY(), 85, 61, memDC2, 85 * f->getMoveCount(), 0, 85, 61, RGB(255, 1, 1));
 				}
-				else
+				else if (f->getFishKinds() == SQUID)
 				{
 					oldBit2 = (HBITMAP)SelectObject(memDC2, squid);
 					TransparentBlt(memDC1, f->getX(), f->getY(), 42, 72, memDC2, 47 * f->getMoveCount(), 0, 47, 72, RGB(255, 1, 1));

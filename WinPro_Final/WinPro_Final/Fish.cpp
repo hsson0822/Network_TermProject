@@ -29,8 +29,6 @@ void Fish::setRect(RECT r) { rect = r; }
 int Fish::getAge() { return age; }
 void Fish::addAge()
 {
-	++age;
-	maxExp = age * 100 + 20;
 	width += 30;
 	height += 30;
 	rect.right += 30;
