@@ -17,6 +17,8 @@ class Fish
 	BOOL goUD;
 	bool is_active;
 	int score;
+public:
+	int is_caught;
 
 public:
 	Fish();

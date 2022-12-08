@@ -142,6 +142,7 @@ void client::send_update_object(client& cl)
 	packet.w = cl.GetWidth();
 	packet.h = cl.GetHeight();
 	packet.id = cl.id;
+	packet.is_caught = cl.is_caught;
 
 	send_packet(&packet, sizeof(SC_UPDATE_PLAYER_PACKET));
 }
@@ -354,12 +355,15 @@ void updateObjects()
 					{
 						for (client& client : clients)
 						{
+							if (client.id == -1)
+								continue;
 							if (client.is_caught == oic.object_info.type)
 							{
 								client.is_caught = -1;
 								client.ResetSizeSpeed();
 							}
 							client.send_erase_object(oic);
+							client.send_update_object(client);
 						}
 
 					}
@@ -376,6 +380,8 @@ void updateObjects()
 					{
 						for (client& client : clients)
 						{
+							if (client.id == -1)
+								continue;
 							if (client.is_caught == oic.object_info.type)
 							{
 								client.is_caught = -1;
@@ -399,7 +405,9 @@ void updateObjects()
 					{
 						for (client& client : clients)
 						{
-							if (client.is_caught == oic.object_info.type)
+							if (client.id == -1)
+								continue;
+							else if (client.is_caught == oic.object_info.type)
 							{
 								client.is_caught = -1;
 								client.ResetSizeSpeed();
@@ -409,22 +417,41 @@ void updateObjects()
 					}
 					break;
 				}
-				default:
-				{
-					break;
-				}
 				}
 				updateStart = chrono::system_clock::now();
 
 				// switch문 처리 후에도 살아있으면
 				if (oic.is_active && oic.object_info.type <= SHARK) // NET, HOOK, SHARK
 				{
-					for (client& client : clients)
-						client.send_update_object(oic);
+					for (client& cl : clients)
+					{
+						if (cl.id == -1)
+							continue;
+						if (cl.is_caught == oic.object_info.type)
+						{
+							cl.SetX(oic.object_info.pos.x);
+							cl.SetY(oic.object_info.pos.y);
+						}
+
+						cl.send_update_object(oic);
+						SC_MOVE_PACKET packet;
+						packet.id = cl.id;
+						packet.type = SC_PLAYER_MOVE;
+						packet.pos.x = cl.GetX();
+						packet.pos.y = cl.GetY();
+
+						// 내 이동 정보를 모든 클라이언트에 전송
+						for (auto& client : clients) {
+							if (client.id == -1)
+								continue;
+							client.send_packet(&packet, sizeof(packet));
+						}
+						
+					}
 				}
 			}
 		}
-
+		
 	}
 }
 
@@ -498,7 +525,12 @@ void progress_Collision_po(client& client, object_info_claculate& oic)
 		cout << "충돌 : " << client.id << "번 플레이어, "<< oic.object_info.type << " : " << oic.object_info.id << endl;
 		client.is_caught = oic.object_info.type;
 		client.score -= OBSTACLE_SCORE;
-
+		for (auto& cl : clients)
+		{
+			if (cl.id == -1)
+				continue;
+			cl.send_update_object(client);
+		}
 		break;
 	}
 	case CRAB:
@@ -511,6 +543,8 @@ void progress_Collision_po(client& client, object_info_claculate& oic)
 		
 		for (auto& cl : clients)
 		{
+			if (cl.id == -1)
+				continue;
 			cl.send_erase_object(oic);
 			cl.send_update_object(client);
 		}
@@ -525,6 +559,8 @@ void progress_Collision_po(client& client, object_info_claculate& oic)
 
 		for (auto& cl : clients)
 		{
+			if (cl.id == -1)
+				continue;
 			cl.send_erase_object(oic);
 			cl.send_update_object(client);
 		}
@@ -546,10 +582,6 @@ void progress_Collision_po(client& client, object_info_claculate& oic)
 
 		break;
 	}
-	default:
-	{
-		break;
-	}
 	}
 }
 
@@ -567,7 +599,7 @@ void collision()
 {
 	for (client& cl_1 : clients)
 	{
-		if (cl_1.id != -1)
+		if (cl_1.id != -1 && cl_1.is_caught == -1)
 		{
 			RECT tmp{};
 			RECT playerRect_1 = RECT{ cl_1.GetX(), cl_1.GetY(), cl_1.GetX() + cl_1.GetWidth(), cl_1.GetY() + cl_1.GetHeight() };
@@ -582,7 +614,7 @@ void collision()
 			}
 			for (client& cl_2 : clients)
 			{
-				if (cl_2.id != -1 && cl_2.id != cl_1.id)
+				if (cl_2.id != -1 && cl_2.id != cl_1.id && cl_2.is_caught == -1)
 				{
 					RECT playerRect_2 = RECT{ cl_2.GetX(), cl_2.GetY(), cl_2.GetX() + cl_2.GetWidth(), cl_2.GetY() + cl_2.GetHeight() };
 					if (IntersectRect(&tmp, &playerRect_1, &playerRect_2))

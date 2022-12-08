@@ -195,6 +195,7 @@ struct SC_UPDATE_PLAYER_PACKET {	// 플레이어 너비 높이 변경
 	char type;
 	int id;
 	short w, h;
+	int is_caught;
 };
 
 //// 아래는 먹이, 장애물 생성 제거 패킷
