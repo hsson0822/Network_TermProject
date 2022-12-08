@@ -261,6 +261,25 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				break;
 			}
 
+			case SC_PLAYER_DEAD: {
+				SC_DEAD_PACKET* packet = reinterpret_cast<SC_DEAD_PACKET*>(buf);
+
+				int other_id = packet->id;
+				if (id == other_id) {
+					fish.Move(packet->x, packet->y);
+					fish.SetScore(packet->score);
+					printf("플레이어 %d 리스폰\n", other_id);
+				}
+				else {
+					players[other_id].Move(packet->x, packet->y);
+					players[other_id].SetScore(packet->score);
+					printf("플레이어 %d 리스폰\n", other_id);
+				}
+
+				overload_packet_process(buf, sizeof(SC_DEAD_PACKET), remain_packet);
+				break;
+			}
+
 			case SC_UPDATE_PLAYER_WH:
 			{
 				cout << "SC_UPDATE_PLAYER_WH" << endl;
@@ -374,15 +393,37 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 
 				if (other_id == id) {
 					//fish.Move(packet->pos.x, packet->pos.y);
+					if (-1 != fish.is_caught)
+						fish.Move(packet->pos.x, packet->pos.y);
 				}
 				else {
 					players[other_id].Move(packet->pos.x, packet->pos.y);
+					if (-1 != fish.is_caught)
+						players[other_id].Move(packet->pos.x, packet->pos.y);
 				}
 				printf("%d 번 플레이어 x : %d, y : %d\n", other_id, packet->pos.x, packet->pos.y);
 
 				overload_packet_process(buf, sizeof(SC_MOVE_PACKET), remain_packet);
 				break;
 			}
+
+			case SC_CAUGHT: {
+				SC_CAUGHT_PACKET* packet = reinterpret_cast<SC_CAUGHT_PACKET*>(buf);
+
+				int other_id = packet->id;
+				if (other_id == id) {
+					fish.Move(packet->x, packet->y);
+				}
+				else {
+					players[other_id].Move(packet->x, packet->y);
+				}
+				printf("%d 번 플레이어 x : %d, y : %d\n", other_id, packet->x, packet->y);
+
+
+				overload_packet_process(buf, sizeof(SC_CAUGHT_PACKET), remain_packet);
+				break;
+			}
+
 
 			case SC_GAME_OVER: {
 				cout << "게임 종료" << endl;
@@ -817,8 +858,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			oldBit2 = (HBITMAP)SelectObject(memDC2, back1);
 			StretchBlt(memDC1, 0, 0, rect.right, rect.bottom, memDC2, 0, 0, 256, 192, SRCCOPY);
 
-			oldBit2 = (HBITMAP)SelectObject(memDC2, arrow);
-			TransparentBlt(memDC1, fish.getRect().left + fish.getWidth() / 3, fish.getRect().top - 30, 30, 50, memDC2, 0, 0, 816, 1083, RGB(255, 255, 255));
+			/*oldBit2 = (HBITMAP)SelectObject(memDC2, arrow);
+			TransparentBlt(memDC1, fish.getRect().left + fish.getWidth() / 3, fish.getRect().top - 30, 30, 50, memDC2, 0, 0, 816, 1083, RGB(255, 255, 255));*/
 
 
 			//물고기
@@ -826,24 +867,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			{
 				if (!eventOut || angryCount > 30) { // 평상시
 					oldBit2 = (HBITMAP)SelectObject(memDC2, normalImage);
-					fish.Draw(memDC1, memDC2);
+					fish.Draw(memDC1, memDC2, normalImage, arrow);
 					for (auto& player : players)
-						player.Draw(memDC1, memDC2);
+						player.Draw(memDC1, memDC2, normalImage, nullptr);
 				}
 				else if (eventOut) { // 이벤트 5회 클릭
 					oldBit2 = (HBITMAP)SelectObject(memDC2, angryImage);
-					fish.Draw(memDC1, memDC2);
+					fish.Draw(memDC1, memDC2, angryImage, arrow);
 					for (auto& player : players)
-						player.Draw(memDC1, memDC2);
+						player.Draw(memDC1, memDC2, angryImage, nullptr);
 					angryCount++;
 				}
 			}
 			else
 			{
 				oldBit2 = (HBITMAP)SelectObject(memDC2, cryImage);
-				fish.Draw(memDC1, memDC2);
+				fish.Draw(memDC1, memDC2, cryImage, arrow);
 				for (auto& player : players)
-					player.Draw(memDC1, memDC2);
+					player.Draw(memDC1, memDC2, cryImage, nullptr);
 			}
 			for (auto& player : players)
 				player.addMoveCount();

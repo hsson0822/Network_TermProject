@@ -12,6 +12,7 @@ Fish::Fish()
 	x = 0;
 	y = 0;
 	is_active = false;
+	is_caught = false;
 }
 
 Fish::Fish(int posX, int posY) : Fish()
@@ -74,12 +75,18 @@ void Fish::Move(short posX, short posY)
 	setRect(RECT{ x, y, x + width, y + height });
 }
 
-void Fish::Draw(const HDC& memDC1, const HDC& memDC2)
+void Fish::Draw(const HDC& memDC1, const HDC& memDC2, HBITMAP image, HBITMAP arrow)
 {
 	if (is_active) {
+		HBITMAP Bit = (HBITMAP)SelectObject(memDC2, image);
 		if (isLR())
 			TransparentBlt(memDC1, getRect().left, getRect().top, getWidth(), getHeight(), memDC2, 124 * getMoveCount(), 159, 124, 159, RGB(255, 1, 1));
 		else
 			TransparentBlt(memDC1, getRect().left, getRect().top, getWidth(), getHeight(), memDC2, 124 * getMoveCount(), 0, 124, 159, RGB(255, 1, 1));
+		
+		if (arrow) {
+			Bit = (HBITMAP)SelectObject(memDC2, arrow);
+			TransparentBlt(memDC1, getRect().left + width / 3, getRect().top - 30, 30, 50, memDC2, 0, 0, 816, 1083, RGB(255, 255, 255));
+		}
 	}
 }

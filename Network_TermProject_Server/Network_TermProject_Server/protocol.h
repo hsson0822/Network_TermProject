@@ -5,7 +5,7 @@ constexpr int TIME_LIMIT = 180;
 constexpr int MAX_USER = 3;
 constexpr int MAX_OBJECT = 100;
 
-constexpr int SPAWN_WIDTH = 800;
+constexpr int SPAWN_WIDTH = 1000;
 constexpr int SPAWN_HEIGHT = 600;
 
 #define WINDOWWIDTH 1800
@@ -29,6 +29,7 @@ constexpr int SPAWN_HEIGHT = 600;
 
 #define FISH_INIT_WIDTH 120
 #define FISH_INIT_HEIGHT 140
+#define FISH_INIT_SPEED 50
 
 // packet의 type 구분
 enum PacketType {
@@ -52,7 +53,8 @@ enum PacketType {
 	CS_DISCONNECT,
 	SC_UPDATE_OBSTACLE,
 	SC_UPDATE_PLAYER_WH,
-	CS_INTERPOLATION
+	CS_INTERPOLATION,
+	SC_CAUGHT
 };
 
 // 오브젝트 type 구분
@@ -149,6 +151,8 @@ struct CS_CLICK_PACKET {
 struct SC_DEAD_PACKET {
 	char type;
 	short id;
+	short x, y;
+	int score;
 };
 
 struct CS_READY_PACKET {
@@ -231,6 +235,12 @@ struct CS_DISCONNECT_PACKET {
 
 struct CS_INTERPOLATION_PACKET {
 	char type;
+	short x, y;
+};
+
+struct SC_CAUGHT_PACKET {
+	char type;
+	int id;
 	short x, y;
 };
 #pragma pack(pop)

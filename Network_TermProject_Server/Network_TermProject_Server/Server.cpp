@@ -3,11 +3,19 @@
 #include <iostream>
 #include <array>
 #include <chrono>
+#include <random>
 #include "protocol.h"
 
 #pragma comment(lib,"ws2_32")
 
 using namespace std;
+
+random_device rd;
+default_random_engine dre(rd());
+uniform_int_distribution<int> random_x(200, SPAWN_WIDTH);		// 플레이어 초기 위치 랜덤
+uniform_int_distribution<int> random_y(200, SPAWN_HEIGHT);
+uniform_int_distribution<int> random_spawn_x(0, WINDOWWIDTH);	// 오브젝트 랜덤 위치
+uniform_int_distribution<int> random_spawn_y(0, WINDOWHEIGHT);
 
 // 클라이언트의 정보가 담김
 class client {
@@ -40,7 +48,7 @@ public:
 		width = FISH_INIT_WIDTH;
 		height = FISH_INIT_HEIGHT;
 		id = -1;
-		speed = 50;
+		speed = FISH_INIT_SPEED;
 		score = 0;
 		is_ready = false;
 		is_caught = -1;
@@ -51,7 +59,7 @@ public:
 	void SetX(short pos_x) { x = pos_x; }
 	void SetY(short pos_y) { y = pos_y; }
 	void SetSizeSpeed(short si) { width += si; height += si; speed *= FISH_INIT_WIDTH / width; }
-	void ResetSizeSpeed() { width = FISH_INIT_WIDTH; height = FISH_INIT_HEIGHT; speed = 5; }
+	void ResetSizeSpeed() { width = FISH_INIT_WIDTH; height = FISH_INIT_HEIGHT; speed = FISH_INIT_SPEED; }
 
 	short GetX() const { return x; };
 	short GetY() const { return y; };
@@ -72,6 +80,8 @@ public:
 	void send_update_object(client& cl);
 
 	void send_add_player(int id);
+	
+	void ReSpawn(int id);
 };
 
 std::array<client, MAX_USER> clients;			// 클라이언트들의 컨테이너
@@ -147,7 +157,28 @@ void client::send_update_object(client& cl)
 	send_packet(&packet, sizeof(SC_UPDATE_PLAYER_PACKET));
 }
 
+void client::ReSpawn(int id)
+{
+	// 크기, 속도 초기화
+	ResetSizeSpeed();
+	is_caught = -1;
 
+	SC_DEAD_PACKET packet;
+	packet.type = SC_PLAYER_DEAD;
+	packet.id = id;
+	packet.score = score;
+	short randx = (int)random_x(dre);
+	short randy = (int)random_y(dre);
+
+	x = randx;
+	y = randy;
+	packet.x = randx;
+	packet.y = randy;
+
+	for (auto& c : clients)
+		if (-1 != c.id)
+			c.send_packet(&packet, sizeof(packet));
+}
 
 void overload_packet_process(char* buf, int packet_size, int& remain_packet)
 {
@@ -174,8 +205,8 @@ void makeFood()
 		}
 
 		int foodKinds = rand() % 3 + 3;
-		short randX = rand() % 1800;
-		short randY = rand() % 1000;
+		short randX = random_spawn_x(dre);
+		short randY = random_spawn_y(dre);
 
 		cout << foodKinds << " 먹이 생성 x:" << randX << "  y:" << randY << endl;
 
@@ -282,7 +313,7 @@ void makeObstacle()
 			//바늘
 			packet.object.type = HOOK;
 
-			randX = rand() % 1800;
+			randX = random_spawn_x(dre);
 			randY = 0;
 			col_x = HOOK_WIDTH;
 			col_y = HOOK_HEIGHT;
@@ -296,7 +327,7 @@ void makeObstacle()
 				randX = WINDOWWIDTH;
 			else
 				randX = -100;
-			randY = rand() % 1000;
+			randY = random_spawn_y(dre);
 			col_x = SHARK_WIDTH;
 			col_y = SHARK_HEIGHT;
 		}
@@ -359,8 +390,8 @@ void updateObjects()
 								continue;
 							if (client.is_caught == oic.object_info.type)
 							{
-								client.is_caught = -1;
-								client.ResetSizeSpeed();
+								client.ReSpawn(client.id);
+								// 리스폰
 							}
 							client.send_erase_object(oic);
 							client.send_update_object(client);
@@ -384,8 +415,8 @@ void updateObjects()
 								continue;
 							if (client.is_caught == oic.object_info.type)
 							{
-								client.is_caught = -1;
-								client.ResetSizeSpeed();
+								client.ReSpawn(client.id);
+								// 리스폰
 							}
 							client.send_erase_object(oic);
 							client.send_update_object(client);
@@ -410,8 +441,8 @@ void updateObjects()
 								continue;
 							else if (client.is_caught == oic.object_info.type)
 							{
-								client.is_caught = -1;
-								client.ResetSizeSpeed();
+								client.ReSpawn(client.id);
+								// 리스폰
 							}
 							client.send_erase_object(oic);
 							client.send_update_object(client);
@@ -432,22 +463,24 @@ void updateObjects()
 						if (cl.is_caught == oic.object_info.type)
 						{
 							cl.SetX(oic.object_info.pos.x);
-							cl.SetY(oic.object_info.pos.y);
+
+							SC_CAUGHT_PACKET packet;
+							packet.id = cl.id;
+							packet.type = SC_CAUGHT;
+							packet.x = cl.GetX();
+							packet.y = cl.GetY();
+
+							// 내 이동 정보를 모든 클라이언트에 전송
+							for (auto& client : clients) {
+								if (client.id == -1)
+									continue;
+								client.send_packet(&packet, sizeof(packet));
+							}
+							//cl.SetY(oic.object_info.pos.y);
 						}
 
 						cl.send_update_object(oic);
-						SC_MOVE_PACKET packet;
-						packet.id = cl.id;
-						packet.type = SC_PLAYER_MOVE;
-						packet.pos.x = cl.GetX();
-						packet.pos.y = cl.GetY();
-
-						// 내 이동 정보를 모든 클라이언트에 전송
-						for (auto& client : clients) {
-							if (client.id == -1)
-								continue;
-							client.send_packet(&packet, sizeof(packet));
-						}
+						
 						
 					}
 				}
@@ -859,8 +892,8 @@ DWORD WINAPI RecvThread(LPVOID arg)
 					short x, y;
 
 					for (int i = 0; i < MAX_USER; ++i) {
-						x = rand() % SPAWN_WIDTH + 200;
-						y = rand() % SPAWN_HEIGHT + 100;
+						x = random_x(dre);
+						y = random_y(dre);
 						clients[i].SetX(x);
 						clients[i].SetY(y);
 						packet.pos[i].x = x;
