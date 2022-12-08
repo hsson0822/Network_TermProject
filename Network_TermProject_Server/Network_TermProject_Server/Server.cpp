@@ -50,7 +50,7 @@ public:
 
 	void SetX(short pos_x) { x = pos_x; }
 	void SetY(short pos_y) { y = pos_y; }
-	void SetSize(short si) { width += si; height += si; }
+	void SetSizeSpeed(short si) { width += si; height += si; speed *= FISH_INIT_WIDTH / width; }
 	void ResetSizeSpeed() { width = FISH_INIT_WIDTH; height = FISH_INIT_HEIGHT; speed = 5; }
 
 	short GetX() const { return x; };
@@ -388,6 +388,7 @@ void updateObjects()
 								client.ResetSizeSpeed();
 							}
 							client.send_erase_object(oic);
+							client.send_update_object(client);
 						}
 					}
 					break;
@@ -413,6 +414,7 @@ void updateObjects()
 								client.ResetSizeSpeed();
 							}
 							client.send_erase_object(oic);
+							client.send_update_object(client);
 						}
 					}
 					break;
@@ -420,7 +422,7 @@ void updateObjects()
 				}
 				updateStart = chrono::system_clock::now();
 
-				// switch문 처리 후에도 살아있으면
+				// switch문 처리 후에도 장애물이 아직 살아있으면 잡힌 상태의 플레이어를 장애물에 구속
 				if (oic.is_active && oic.object_info.type <= SHARK) // NET, HOOK, SHARK
 				{
 					for (client& cl : clients)
@@ -538,9 +540,8 @@ void progress_Collision_po(client& client, object_info_claculate& oic)
 		cout << "충돌 : " << client.id << "번 플레이어, 게 : " << oic.object_info.id << endl;
 
 		client.score += CRAB_SCORE;
-		client.SetSize(CRAB_SCORE);
-		//client.speed *= FISH_INIT_WIDTH / (double)client.GetWidth();
-		
+		client.SetSizeSpeed(CRAB_SCORE);
+
 		for (auto& cl : clients)
 		{
 			if (cl.id == -1)
@@ -555,7 +556,7 @@ void progress_Collision_po(client& client, object_info_claculate& oic)
 	{
 		cout << "충돌 : " << client.id << "번 플레이어, 오징어 : " << oic.object_info.id << endl;
 		client.score += SQUID_SCORE;
-		client.SetSize(SQUID_SCORE);
+		client.SetSizeSpeed(SQUID_SCORE);
 
 		for (auto& cl : clients)
 		{
@@ -572,7 +573,7 @@ void progress_Collision_po(client& client, object_info_claculate& oic)
 	{
 		cout << "충돌 : " << client.id << "번 플레이어, 해파리" << endl;
 		client.score += JELLYFISH_SCORE;
-		client.SetSize(JELLYFISH_SCORE);
+		client.SetSizeSpeed(JELLYFISH_SCORE);
 
 		for (auto& cl : clients)
 		{
@@ -792,10 +793,10 @@ DWORD WINAPI RecvThread(LPVOID arg)
 
 			case CS_LBUTTONCLICK: {
 				CS_CLICK_PACKET* click_packet = reinterpret_cast<CS_CLICK_PACKET*>(buf);
-
+				cout << click_packet->point.x << ", " << click_packet->point.y << endl;
 				for (auto& oic : objects_calculate)
 				{
-					if (oic.is_active && oic.life > 0) // life가 0 이상이면 장애물임
+					if (oic.is_active && oic.life > 0) // life가 0 초과이면 장애물임
 					{
 						RECT oicrect = RECT{ oic.object_info.pos.x, oic.object_info.pos.y, oic.object_info.pos.x + oic.width, oic.object_info.pos.y + oic.height };
 						if (PtInRect(&oicrect, click_packet->point))
