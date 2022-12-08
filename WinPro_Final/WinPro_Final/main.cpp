@@ -16,6 +16,7 @@
 #include <vector>
 #include <mmsystem.h>
 #include <algorithm>
+#include <unordered_map>
 #include "resource.h"
 #include "Fish.h"
 #include "Food.h"
@@ -387,14 +388,19 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				cout << "게임 종료" << endl;
 
 				SC_GAME_OVER_PACKET* packet = reinterpret_cast<SC_GAME_OVER_PACKET*>(buf);
+				unordered_map<int, int> map;
 
 				// 게임 종료시 점수를 마지막으로 받음
 				for (int i = 0; i < MAX_USER; ++i) {
-					if (i == id)
-						fish.SetScore(packet->scores[i]);
-					else
-						players[i].SetScore(packet->scores[i]);
+					map[i] = i*100;
 				}
+
+
+				vector<pair<int, int>> v(map.begin(), map.end());
+				sort(v.begin(), v.end(), [](pair<int, int>& a, pair<int, int>& b)
+					{
+						return a.second > b.second;
+					});
 
 				CS_DISCONNECT_PACKET send_packet;
 				send_packet.type = CS_DISCONNECT;
@@ -409,10 +415,8 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				if (retval == SOCKET_ERROR) err_display("disconnect game()");
 
 				TCHAR message[100];
-				//wsprintf(message, L"%d\n%d\n%d", players[0].GetScore(), players[1].GetScore(), players[2].GetScore());
-				wsprintf(message, L"%d\n%d\n%d", 0, 0, 0);
+				wsprintf(message, L"%d번 플레이어 : %d점\n%d번 플레이어 : %d점\n%d번 플레이어 : %d점",v[0].first, v[0].second, v[1].first, v[1].second, v[2].first, v[2].second);
 				MessageBox(hWnd, message, L"게임 종료", MB_OK);
-
 
 				foods.clear();
 
@@ -818,7 +822,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 
 			//물고기
-			if (fish.is_caught != -1)
+			if (fish.is_caught == -1)
 			{
 				if (!eventOut || angryCount > 30) { // 평상시
 					oldBit2 = (HBITMAP)SelectObject(memDC2, normalImage);
