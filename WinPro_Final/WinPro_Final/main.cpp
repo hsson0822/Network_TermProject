@@ -268,12 +268,12 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				int other_id = packet->id;
 				if (id == other_id) {
 					fish.Move(packet->x, packet->y);
-					fish.SetScore(packet->score);
+					fish.SetScore(fish.GetScore() - packet->score);
 					printf("플레이어 %d 리스폰\n", other_id);
 				}
 				else {
 					players[other_id].Move(packet->x, packet->y);
-					players[other_id].SetScore(packet->score);
+					players[other_id].SetScore(players[other_id].GetScore() - packet->score);
 					printf("플레이어 %d 리스폰\n", other_id);
 				}
 
@@ -295,9 +295,17 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				{
 					fish.setWH(packet->w, packet->h);
 					fish.is_caught = packet->is_caught;
+					if (-1 != fish.is_caught)
+						fish.setMoveDir(0);
+				
 				}
-				else
+				else {
 					players[packet->id].setWH(packet->w, packet->h);
+					
+					if (-1 != players[packet->id].is_caught)
+						players[packet->id].setMoveDir(0);
+
+				}
 
 				overload_packet_process(buf, sizeof(SC_UPDATE_PLAYER_PACKET), remain_packet);
 				break;
@@ -376,15 +384,15 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				isGameStart = true;
 				overload_packet_process(buf, sizeof(SC_GAME_START_PACKET), remain_packet);
 				//SetTimer(hWnd, 2, 70, NULL);	// 먹이 낙하
-				SetTimer(hWnd, 3, 50, NULL);	// 물고기 이동 / 먹이 섭취
+				SetTimer(hWnd, 3, MOVE_COOLTIME, NULL);	// 물고기 이동 / 먹이 섭취
 				//SetTimer(hWnd, 4, 30000, NULL);	// 이벤트 생성 30초
 				//SetTimer(hWnd, 5, 70, NULL);	// 이벤트 진행
 
 				break;
 			}
 
-			case SC_PLAYER_MOVE: {
-				SC_MOVE_PACKET* packet = reinterpret_cast<SC_MOVE_PACKET*>(buf);
+			case SC_CHANGE_DIRECTION: {
+				SC_CHANGE_DIRECTION_PACKET* packet = reinterpret_cast<SC_CHANGE_DIRECTION_PACKET*>(buf);
 
 				// -----------------------------
 				// id로 나 or 플레이어 이동 처리
@@ -393,22 +401,15 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				int other_id = packet->id;
 
 				if (other_id == id) {
-					//fish.Move(packet->pos.x, packet->pos.y);
 					fish.SetSpeed(packet->speed);
-					if (-1 != fish.is_caught)
-						fish.Move(packet->pos.x, packet->pos.y);
 				}
-				// 자기 자신은 키입력 시 방향전환이 되므로 다른 플레이어에 대해서만 방향전환을 함
 				else {
+					cout << other_id << "의 방향 : " << bitset<8>(packet->dir) << endl;
 					players[other_id].setMoveDir(packet->dir);
 					players[other_id].SetSpeed(packet->speed);
-					//players[other_id].Move(packet->pos.x, packet->pos.y);
-					if (-1 != fish.is_caught)
-						players[other_id].Move(packet->pos.x, packet->pos.y);
 				}
-				printf("%d 번 플레이어 x : %d, y : %d\n", other_id, packet->pos.x, packet->pos.y);
 
-				overload_packet_process(buf, sizeof(SC_MOVE_PACKET), remain_packet);
+				overload_packet_process(buf, sizeof(SC_CHANGE_DIRECTION_PACKET), remain_packet);
 				break;
 			}
 
@@ -420,7 +421,6 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 					fish.Move(packet->x, packet->y);
 				}
 				else {
-					players[other_id].setMoveDir(4); // 정지 상태로 만듦
 					players[other_id].Move(packet->x, packet->y);
 				}
 
@@ -639,7 +639,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		loadingRect = { rect.right / 2 - 50 , rect.bottom / 2 + 200 , rect.right / 2 + 100, rect.bottom / 2 + 300 };
 		loadingCount = 0;
 
-		fish.is_caught = -1;
 		eventNum = 5;
 		eventOut = false;
 
@@ -677,11 +676,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 		// 이동키를 눌렀다면
 		if (dir != 0b0000) {
-			fish.setMoveDir(dir);
-			cout << bitset<8>(dir) << endl;
+			// 기존 이동 방향과 키입력 방향이 같다면 빠져나오도록 함
+			// 방향 전환시 한번만 패킷전송을 하기 위해
+			unsigned char direction = fish.getMoveDir();
+			if (direction == dir)
+				break;
 
-			CS_MOVE_PACKET packet;
-			packet.type = CS_PLAYER_MOVE;
+			fish.setMoveDir(dir);
+
+			CS_CHANGE_DIRECTION_PACKET packet;
+			packet.type = CS_CHANGE_DIRECTION;
 			packet.dir = dir;
 
 			char send_buf[BUF_SIZE];
@@ -701,12 +705,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		if (!isGameStart)
 			break;
 
+		if (fish.is_caught != -1)
+			break;
+
 		unsigned char dir = 0b0000;
 
 		switch (wParam)
 		{
-			if (fish.is_caught != -1)
-				break;
 		case 'A':
 			dir = MOVE_LEFT;
 			break;
@@ -728,8 +733,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			fish.setMoveDir(direction);
 
 			// 이동방향이 0이 아님 = 대각선으로 움직이다 한쪽방향을 뗌
-			CS_MOVE_PACKET packet;
-			packet.type = CS_PLAYER_MOVE;;
+			CS_CHANGE_DIRECTION_PACKET packet;
+			packet.type = CS_CHANGE_DIRECTION;
 			packet.dir = direction;
 
 			char send_buf[BUF_SIZE];
@@ -1019,53 +1024,38 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			ReleaseDC(hWnd, hDC);
 			break;
 		}
+
 			//물고기 이동 및 먹이 섭취
 		case 3:
-			if (fish.is_caught == -1)
-			{
-				fish.AnimateBySpeed();
-
-				// 다른 플레이어는 살아있을 때만 이동 처리
-				for (auto& p : players)
-					if (p.GetIsActive())
+			// 다른 플레이어는 살아있을 때만 이동 처리
+			for (auto& p : players)
+				if (p.GetIsActive())
+					if(p.is_caught == -1)
 						p.AnimateBySpeed();
 
+			if (fish.is_caught == -1) {
+				fish.AnimateBySpeed();
 
-				/*float my_speed = fish.GetSpeed();
-				float duration = 5;
-				float my_x, my_y;*/
-				//if (fish.getMoveDir() == 0)
-				//{
-				//	//왼쪽
-				//	x = fish.GetX();
-				//	y = fish.GetY();
-				//	x -= move_speed / duration;
-				//	fish.Move((short)x, (short)y);
-				//}
-				//else if (fish.getMoveDir() == 1)
-				//{
-				//	//오른쪽
-				//	x = fish.GetX();
-				//	y = fish.GetY();
-				//	x += move_speed / duration;
-				//	fish.Move((short)x, (short)y);
-				//}
-				//else if (fish.getMoveDir() == 2)
-				//{
-				//	//위
-				//	x = fish.GetX();
-				//	y = fish.GetY();
-				//	y -= move_speed / duration;
-				//	fish.Move((short)x, (short)y);
-				//}
-				//else if (fish.getMoveDir() == 3)
-				//{
-				//	//아래
-				//	x = fish.GetX();
-				//	y = fish.GetY();
-				//	y += move_speed / duration;
-				//	fish.Move((short)x, (short)y);
-				//}
+				std::chrono::system_clock::time_point cur = std::chrono::system_clock::now();
+				auto interpolation = std::chrono::duration_cast<std::chrono::milliseconds>(cur - fish.last_interpolation).count();
+
+				// 200ms 마다 위치 조정
+				if (interpolation > INTERPOLATION_TIME) {
+					fish.last_interpolation = cur;
+
+					CS_INTERPOLATION_PACKET packet;
+					packet.type = CS_INTERPOLATION;
+					packet.x = fish.GetX();
+					packet.y = fish.GetY();
+
+					char send_buf[BUF_SIZE];
+					ZeroMemory(send_buf, BUF_SIZE);
+					memcpy(send_buf, &packet, sizeof(packet));
+
+
+					retval = send(sock, send_buf, sizeof(packet), 0);
+					if (retval == SOCKET_ERROR) err_display("move key up send()");
+				}
 			}
 			else
 			{

@@ -16,8 +16,10 @@ Fish::Fish()
 	x = 0;
 	y = 0;
 	is_active = false;
-	is_caught = false;
+	is_caught = -1;
 	speed = FISH_INIT_SPEED;
+	last_move = std::chrono::system_clock::now();
+	last_interpolation = last_move;
 }
 
 Fish::Fish(int posX, int posY) : Fish()
@@ -79,8 +81,8 @@ void Fish::setMoveDir(unsigned char dir)
 	moveDir = dir; 
 }
 
-int Fish::GetSpeed() const { return speed; }
-void Fish::SetSpeed(int value) { speed = value; }
+double Fish::GetSpeed() const { return speed; }
+void Fish::SetSpeed(double value) { speed = value; }
 
 BOOL Fish::isXY() { return goXY; }
 BOOL Fish::isLR() { return goLR; }
@@ -122,8 +124,13 @@ void Fish::AnimateBySpeed()
 {
 	float my_x = static_cast<float>(x);
 	float my_y = static_cast<float>(y);
-	float duration = 5;
-	float dist = speed / duration;
+	float duration = MOVE_BIAS;
+
+	std::chrono::system_clock::time_point cur = std::chrono::system_clock::now();
+	auto exec = std::chrono::duration_cast<std::chrono::milliseconds>(cur - last_move).count();
+	last_move = cur;
+
+	float dist = speed / duration * exec;
 
 	if (moveDir == 0b0000) // STOP
 		return;

@@ -1,3 +1,6 @@
+#pragma once
+#include <mutex>
+
 constexpr unsigned short PORT = 9000;
 constexpr int BUF_SIZE = 1024;
 
@@ -5,13 +8,13 @@ constexpr int TIME_LIMIT = 180;
 constexpr int MAX_USER = 3;
 constexpr int MAX_OBJECT = 100;
 
-constexpr int SPAWN_WIDTH = 1000;
-constexpr int SPAWN_HEIGHT = 600;
+constexpr int PLAYER_WIDTH = 1000;
+constexpr int PLAYER_HEIGHT = 600;
 
 #define WINDOWWIDTH 1800
 #define WINDOWHEIGHT 900
 #define OBSTACLE_SCORE 10
-#define MAX_LIFE 50
+#define MAX_LIFE 1
 
 #define NET_WIDTH 200
 #define NET_HEIGHT 400
@@ -30,16 +33,22 @@ constexpr int SPAWN_HEIGHT = 600;
 #define FISH_INIT_WIDTH 120
 #define FISH_INIT_HEIGHT 140
 #define FISH_INIT_SPEED 40
+#define FISH_MIN_SPEED 30
 
 #define MOVE_LEFT  0b0001
 #define MOVE_RIGHT 0b0010
 #define MOVE_UP	   0b0100
 #define MOVE_DOWN  0b1000
+#define MOVE_BIAS 200				// 이동 계산 시 speed 에 나눌 값
+
+#define OBSTACLE_SPAWN_TIME 7000
+#define MOVE_COOLTIME 50			// 50ms 마다 위치 계산
+#define INTERPOLATION_TIME 200		// 위치 조정 200ms 마다
 
 // packet의 type 구분
 enum PacketType {
-	SC_PLAYER_MOVE,			// 서버 -> 클라		이동
-	CS_PLAYER_MOVE,			// 클라 -> 서버		이동
+	SC_CHANGE_DIRECTION,	// 서버 -> 클라		방향 전환
+	CS_CHANGE_DIRECTION,	// 클라 -> 서버		이동
 	CS_LBUTTONCLICK,		// 클라 -> 서버		왼쪽 마우스버튼 클릭
 	SC_PLAYER_DEAD,			// 서버 -> 클라		플레이어 사망
 	CS_PLAYER_READY,		// 클라 -> 서버		준비 완료
@@ -116,7 +125,8 @@ struct object_info_claculate {
 	short width, height;
 	bool b_hook = false;
 	int life = -1;
-	unsigned char dir = -1;
+	int dir = -1;
+	std::mutex life_lock;
 };
 // 서버 -> 클라 패킷의 id 는 클라이언트 구분용 id
 
@@ -129,11 +139,10 @@ struct SC_CREATE_FOOD_PACKET
 	position pos;
 };
 
-struct SC_MOVE_PACKET {
+struct SC_CHANGE_DIRECTION_PACKET {
 	char type;
 	unsigned char dir;
 	int id;
-	position pos;
 	int speed;
 };
 
@@ -146,7 +155,7 @@ struct SC_LOGIN_OK_PACKET {
 	int id;
 };
 
-struct CS_MOVE_PACKET {
+struct CS_CHANGE_DIRECTION_PACKET {
 	char type;
 	unsigned char dir;
 };

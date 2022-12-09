@@ -12,10 +12,12 @@ using namespace std;
 
 random_device rd;
 default_random_engine dre(rd());
-uniform_int_distribution<int> random_x(200, SPAWN_WIDTH);		// 플레이어 초기 위치 랜덤
-uniform_int_distribution<int> random_y(200, SPAWN_HEIGHT);
+uniform_int_distribution<int> random_x(200, PLAYER_WIDTH);		// 플레이어 초기 위치 랜덤
+uniform_int_distribution<int> random_y(200, PLAYER_HEIGHT);
 uniform_int_distribution<int> random_spawn_x(0, WINDOWWIDTH);	// 오브젝트 랜덤 위치
-uniform_int_distribution<int> random_spawn_y(0, WINDOWHEIGHT);
+uniform_int_distribution<int> random_spawn_y(0, WINDOWHEIGHT);	
+uniform_int_distribution<int> random_life(0, MAX_LIFE);			// 오브젝트 랜덤 체력
+uniform_int_distribution<int> random_object(0, 2);			// 오브젝트 랜덤 타입
 
 // 클라이언트의 정보가 담김
 class client {
@@ -32,7 +34,9 @@ public:
 	int score;
 	SOCKET sock;
 	chrono::system_clock::time_point last_move;
-	long long move_cooltime = 250;
+	chrono::system_clock::time_point last_interpolation;
+	unsigned char dir;
+	float duration;
 
 
 public:
@@ -54,11 +58,20 @@ public:
 		is_caught = -1;
 		is_pulled = false;
 		last_move = chrono::system_clock::now();
+		last_interpolation = last_move;
+		dir = 0;
+		duration = MOVE_BIAS;
 	}
 
 	void SetX(short pos_x) { x = pos_x; }
 	void SetY(short pos_y) { y = pos_y; }
-	void SetSizeSpeed(short si) { width += si; height += si; speed *= (double)FISH_INIT_WIDTH / (double)width; }
+	void SetSizeSpeed(short si) { 
+		width += si; 
+		height += si; 
+		speed *= (double)FISH_INIT_WIDTH / (double)width; 
+		if (speed <= FISH_MIN_SPEED)
+			speed = FISH_MIN_SPEED;
+	}
 	void ResetSizeSpeed() { width = FISH_INIT_WIDTH; height = FISH_INIT_HEIGHT; speed = FISH_INIT_SPEED; }
 
 	short GetX() const { return x; };
@@ -204,7 +217,7 @@ void makeFood()
 				cout << c.id << " 번 플레이어 좌표 x : " << c.GetX() << ", y : " << c.GetY() << endl;
 		}
 
-		int foodKinds = rand() % 3 + 3;
+		int foodKinds = random_object(dre) + 3;
 		short randX = random_spawn_x(dre);
 		short randY = random_spawn_y(dre);
 
@@ -280,14 +293,14 @@ void makeObstacle()
 	obstacleCurrent = chrono::system_clock::now();
 	obstacleMs = chrono::duration_cast<chrono::milliseconds>(obstacleCurrent - obstacleStart).count();
 	// 생성 후 지난 시간이 30000ms 를 넘으면 생성
-	if (obstacleMs > 30000)
+	if (obstacleMs > OBSTACLE_SPAWN_TIME)
 	{
 
-		int obstacleKinds = rand() % 3;
+		int obstacleKinds = random_object(dre);
 		int obstacledir = rand() % 2;
 		short randX;
 		short randY;
-		int obstacleHP = rand() % MAX_LIFE;		// 0 ~ 49 랜덤값
+		int obstacleHP = random_life(dre);		// hp 랜덤 값
 
 		cout << obstacleKinds << " 장애물 생성" << endl;
 
@@ -621,22 +634,44 @@ void progress_Collision_po(client& client, object_info_claculate& oic)
 
 void progress_Collision_mo(object_info_claculate& oic)
 {
+	// 클라이언트 쓰레드마다 오브젝트의 체력에 접근할 수 있으므로 lock 필요
+	oic.life_lock.lock();
 	if (--oic.life == -1)
 	{
-		for (auto& cl : clients)
+		oic.life_lock.unlock();
+
+		for (auto& cl : clients) {
+			if (-1 == cl.id) continue;
+
+			// 잡혀있었다면 잡힌 플레이어를 놔줘야 함
+			// 사라진 object 타입과 is_caught 가 같다면 잡혔던 플레이어
+			if (oic.object_info.type == cl.is_caught) {
+				cl.is_caught = -1;
+
+				for (auto& c : clients) {
+					if (-1 == cl.id) continue;
+					
+					c.send_update_object(cl);
+				}
+			}
+
 			cl.send_erase_object(oic);
+		}
 	}
+	else
+		oic.life_lock.unlock();
 
 }
 
 void collision()
-{
+{	
+	short bias{};
 	for (client& cl_1 : clients)
 	{
 		if (cl_1.id != -1 && cl_1.is_caught == -1)
 		{
 			RECT tmp{};
-			RECT playerRect_1 = RECT{ cl_1.GetX(), cl_1.GetY(), cl_1.GetX() + cl_1.GetWidth(), cl_1.GetY() + cl_1.GetHeight() };
+			RECT playerRect_1 = RECT{ cl_1.GetX() + bias, cl_1.GetY() + bias, cl_1.GetX() + cl_1.GetWidth() - bias, cl_1.GetY() + cl_1.GetHeight() - bias };
 			for (object_info_claculate& oic : objects_calculate)
 			{
 				if (oic.is_active)
@@ -659,6 +694,75 @@ void collision()
 	}
 }
 
+void MovePlayer()
+{
+	std::chrono::system_clock::time_point cur;
+
+	// 이동 쿨타임 마다 위치 갱신
+	for (auto& client : clients) {
+		printf("플레이어 : %d, is_caught : %d\n", client.id, client.is_caught);
+		if (-1 == client.id) continue;
+		if (-1 != client.is_caught) continue;
+
+		// 현재 시간 - 마지막으로 움직인 시간
+		cur = std::chrono::system_clock::now();
+		auto exec = std::chrono::duration_cast<std::chrono::milliseconds>(cur - client.last_move).count();
+
+		// 쿨타임 50ms 보다 차이가 크면 이동
+		if (exec > MOVE_COOLTIME) {
+			client.last_move = cur;
+
+			unsigned char dir = client.dir;
+
+			// 이동하지 않는다면 아래 이동 처리 건너뜀
+			if (dir == 0)
+				continue;
+
+			short x = client.GetX();
+			short y = client.GetY();
+			
+			float dist = client.speed / client.duration * exec;
+
+			if ((dir & MOVE_LEFT) == MOVE_LEFT)
+				x -= dist;
+			if ((dir & MOVE_RIGHT) == MOVE_RIGHT)
+				x += dist;
+			if ((dir & MOVE_UP) == MOVE_UP)
+				y -= dist;
+			if ((dir & MOVE_DOWN) == MOVE_DOWN)
+				y += dist;
+
+			client.SetX(x);
+			client.SetY(y);
+
+		}
+
+		//// 500ms 마다 위치 조정	-> 클라이언트에서 서버로 조정하는 방식으로 됨, 원래는 서버에서 클라이언트로 보정하는 것이 맞을것
+		//auto interpolation = std::chrono::duration_cast<std::chrono::milliseconds>(cur - client.last_interpolation).count();
+		//if (interpolation > INTERPOLATION_TIME) {
+		//	client.last_interpolation = cur;
+
+
+		//	short x = client.GetX();
+		//	short y = client.GetY();
+
+		//	SC_INTERPOLATION_PACKET packet;
+		//	packet.id = client.id;
+		//	packet.type = SC_INTERPOLATION;
+		//	packet.x = x;
+		//	packet.y = y;
+
+		//	for (auto& c : clients) {
+		//		if (-1 == c.id) continue;
+		//		c.send_packet(&packet, sizeof(packet));
+		//	}
+
+
+		//}
+	}
+
+}
+
 DWORD WINAPI CalculateThread(LPVOID arg)
 {
 	auto start_time = chrono::system_clock::now();
@@ -673,6 +777,7 @@ DWORD WINAPI CalculateThread(LPVOID arg)
 
 		// 플레이어가 한명이라도 있어야만 계산쓰레드가 작동하도록 함
 		if (id > 0) {
+			MovePlayer();
 			makeFood();
 			makeObstacle();
 			updateObjects();
@@ -754,56 +859,28 @@ DWORD WINAPI RecvThread(LPVOID arg)
 
 			// 버퍼 처리 
 			switch (buf[0]) {
-			case CS_PLAYER_MOVE: {
-				auto& c = clients[this_id];
-				auto now = chrono::system_clock::now();
+			case CS_CHANGE_DIRECTION: {
 
-				auto exec = chrono::duration_cast<chrono::milliseconds>(now - c.last_move).count();
+				client& c = clients[this_id];
 
-				if (exec > c.move_cooltime) {
-					c.last_move = now;
-					CS_MOVE_PACKET* move_packet = reinterpret_cast<CS_MOVE_PACKET*>(buf);
+				CS_CHANGE_DIRECTION_PACKET* move_packet = reinterpret_cast<CS_CHANGE_DIRECTION_PACKET*>(buf);
+				c.dir = move_packet->dir;
 
-					short x = c.GetX();
-					short y = c.GetY();
+				SC_CHANGE_DIRECTION_PACKET packet;
+				packet.type = SC_CHANGE_DIRECTION;
+				packet.id = this_id;
+				packet.dir = move_packet->dir;
+				packet.speed = c.speed;
 
-					// 방향에 따라 x, y 값이 속도만큼 변함
-					unsigned char dir = move_packet->dir;
+				for (auto& client : clients) {
+					if (-1 == client.id) continue;
 
-					if ((dir & MOVE_LEFT) == MOVE_LEFT)
-						x -= c.speed;
-					if ((dir & MOVE_RIGHT) == MOVE_RIGHT)
-						x += c.speed;
-					if ((dir & MOVE_UP) == MOVE_UP)
-						y -= c.speed;
-					if ((dir & MOVE_DOWN) == MOVE_DOWN)
-						y += c.speed;
-
-					// 충돌처리 부분 필요
-
-					// 서버의 클라이언트 정보에 이동한 좌표값 최신화
-					c.SetX(x);
-					c.SetY(y);
-
-
-					std::cout << "x : " << x << ", y : " << y << ",  speed : " << c.speed << ", is_caught : " << c.is_caught << std::endl;
-
-					SC_MOVE_PACKET packet;
-					packet.id = this_id;
-					packet.type = SC_PLAYER_MOVE;
-					packet.speed = c.speed;
-					packet.dir = dir;
-					packet.pos.x = x;
-					packet.pos.y = y;
-
-					// 내 이동 정보를 모든 클라이언트에 전송
-					for (auto& client : clients) {
-						if (client.id == -1)
-							continue;
-						client.send_packet(&packet, sizeof(packet));
-					}
+					client.send_packet(&packet, sizeof(packet));
 				}
-				overload_packet_process(buf, sizeof(CS_MOVE_PACKET), remain_packet);
+
+
+
+				overload_packet_process(buf, sizeof(SC_CHANGE_DIRECTION_PACKET), remain_packet);
 				break;
 
 			}
@@ -841,11 +918,12 @@ DWORD WINAPI RecvThread(LPVOID arg)
 				cout << click_packet->point.x << ", " << click_packet->point.y << endl;
 				for (auto& oic : objects_calculate)
 				{
-					if (oic.is_active && oic.life > 0) // life가 0 초과이면 장애물임
+					if (oic.is_active && oic.life >= 0) // life가 0 이상이면 장애물임
 					{
 						RECT oicrect = RECT{ oic.object_info.pos.x, oic.object_info.pos.y, oic.object_info.pos.x + oic.width, oic.object_info.pos.y + oic.height };
-						if (PtInRect(&oicrect, click_packet->point))
+						if (PtInRect(&oicrect, click_packet->point)) {
 							progress_Collision_mo(oic);
+						}
 					}
 				}
 				overload_packet_process(buf, sizeof(CS_CLICK_PACKET), remain_packet);

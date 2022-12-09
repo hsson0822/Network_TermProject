@@ -1,5 +1,6 @@
 #pragma once
 #include <windows.h>
+#include <chrono>
 
 class Fish
 {
@@ -17,9 +18,12 @@ class Fish
 	BOOL goUD;
 	bool is_active;
 	int score;
-	int speed;
+	double speed;
+	std::chrono::system_clock::time_point last_move;
+
 public:
 	int is_caught;
+	std::chrono::system_clock::time_point last_interpolation;
 
 public:
 	Fish();
@@ -49,8 +53,8 @@ public:
 	unsigned char getMoveDir();
 	void setMoveDir(unsigned char dir);
 
-	int GetSpeed() const;
-	void SetSpeed(int value);
+	double GetSpeed() const;
+	void SetSpeed(double value);
 
 	BOOL isXY();
 	BOOL isLR();
