@@ -20,6 +20,7 @@
 #include "resource.h"
 #include "Fish.h"
 #include "Food.h"
+#include <bitset>
 #include "../../Network_TermProject_Server/Network_TermProject_Server/protocol.h"
 
 using namespace std;
@@ -393,17 +394,37 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 
 				if (other_id == id) {
 					//fish.Move(packet->pos.x, packet->pos.y);
+					fish.SetSpeed(packet->speed);
 					if (-1 != fish.is_caught)
 						fish.Move(packet->pos.x, packet->pos.y);
 				}
+				// 자기 자신은 키입력 시 방향전환이 되므로 다른 플레이어에 대해서만 방향전환을 함
 				else {
-					players[other_id].Move(packet->pos.x, packet->pos.y);
+					players[other_id].setMoveDir(packet->dir);
+					players[other_id].SetSpeed(packet->speed);
+					//players[other_id].Move(packet->pos.x, packet->pos.y);
 					if (-1 != fish.is_caught)
 						players[other_id].Move(packet->pos.x, packet->pos.y);
 				}
 				printf("%d 번 플레이어 x : %d, y : %d\n", other_id, packet->pos.x, packet->pos.y);
 
 				overload_packet_process(buf, sizeof(SC_MOVE_PACKET), remain_packet);
+				break;
+			}
+
+			case SC_INTERPOLATION: {
+				SC_INTERPOLATION_PACKET* packet = reinterpret_cast<SC_INTERPOLATION_PACKET*>(buf);
+				int other_id = packet->id;
+				
+				if (other_id == id) {
+					fish.Move(packet->x, packet->y);
+				}
+				else {
+					players[other_id].setMoveDir(4); // 정지 상태로 만듦
+					players[other_id].Move(packet->x, packet->y);
+				}
+
+				overload_packet_process(buf, sizeof(SC_INTERPOLATION_PACKET), remain_packet);
 				break;
 			}
 
@@ -640,41 +661,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		if (fish.is_caught != -1)
 			break;
 
-		char dir = -1;
-		switch (wParam)
-		{
-			if (fish.is_caught != -1)
-				break;
-		case VK_LEFT:
-			dir = LEFT_DOWN;
-			fish.setXY(true);
-			fish.setLR(false);
-			fish.setMoveDir(0);
-			break;
-		case VK_RIGHT:
-			dir = RIGHT_DOWN;
-			fish.setXY(true);
-			fish.setLR(true);
-			fish.setMoveDir(1);
-			break;
-		case VK_UP:
-			dir = UP_DOWN;
-			fish.setXY(false);
-			fish.setUD(false);
-			fish.setMoveDir(2);
-			break;
-		case VK_DOWN:
-			dir = DOWN_DOWN;
-			fish.setXY(false);
-			fish.setUD(true);
-			fish.setMoveDir(3);
-			break;
-
+		unsigned char dir = 0b0000;
+		if (GetKeyState('A') & 0x8000) {		// LEFT
+			dir = (dir | MOVE_LEFT);
+		}
+		if (GetKeyState('D') & 0x8000) {		// RIGHT
+			dir = (dir | MOVE_RIGHT);
+		}
+		if (GetKeyState('W') & 0x8000) {		// UP
+			dir = (dir | MOVE_UP);
+		}
+		if (GetKeyState('S') & 0x8000) {		// DOWN
+			dir = (dir | MOVE_DOWN);
 		}
 
-
 		// 이동키를 눌렀다면
-		if (dir != -1) {
+		if (dir != 0b0000) {
+			fish.setMoveDir(dir);
+			cout << bitset<8>(dir) << endl;
+
 			CS_MOVE_PACKET packet;
 			packet.type = CS_PLAYER_MOVE;
 			packet.dir = dir;
@@ -696,33 +701,36 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		if (!isGameStart)
 			break;
 
-		char dir = -1;
+		unsigned char dir = 0b0000;
 
 		switch (wParam)
 		{
 			if (fish.is_caught != -1)
 				break;
-		case VK_LEFT:
-			dir = LEFT_DOWN;
+		case 'A':
+			dir = MOVE_LEFT;
 			break;
-		case VK_RIGHT:
-			dir = RIGHT_DOWN;
+		case 'D':
+			dir = MOVE_RIGHT;
 			break;
-		case VK_UP:
-			dir = UP_DOWN;
+		case 'W':
+			dir = MOVE_UP;
 			break;
-		case VK_DOWN:
-			dir = DOWN_DOWN;
+		case 'S':
+			dir = MOVE_DOWN;
 			break;
 		}
 
-		if (dir != -1) {
-			fish.setMoveDir(4);
+		if (dir != 0b0000) {
+			// 현재 방향에서 키를 뗀 방향을 xor하면 남은 이동방향이 나옴
+			unsigned char direction = fish.getMoveDir();
+			direction = (direction ^ dir);
+			fish.setMoveDir(direction);
 
-			CS_INTERPOLATION_PACKET packet;
-			packet.type = CS_INTERPOLATION;
-			packet.x = fish.GetX();
-			packet.y = fish.GetY();
+			// 이동방향이 0이 아님 = 대각선으로 움직이다 한쪽방향을 뗌
+			CS_MOVE_PACKET packet;
+			packet.type = CS_PLAYER_MOVE;;
+			packet.dir = direction;
 
 			char send_buf[BUF_SIZE];
 			ZeroMemory(send_buf, BUF_SIZE);
@@ -730,7 +738,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 
 			retval = send(sock, send_buf, sizeof(packet), 0);
-			if (retval == SOCKET_ERROR) err_display("move key up send()");
+			if (retval == SOCKET_ERROR) err_display("move key down send()");
+			
+
+			// 이동방향이 0 = 모든 이동키를 뗌
+			if(direction == 0){
+				CS_INTERPOLATION_PACKET packet;
+				packet.type = CS_INTERPOLATION;
+				packet.x = fish.GetX();
+				packet.y = fish.GetY();
+
+				char send_buf[BUF_SIZE];
+				ZeroMemory(send_buf, BUF_SIZE);
+				memcpy(send_buf, &packet, sizeof(packet));
+
+
+				retval = send(sock, send_buf, sizeof(packet), 0);
+				if (retval == SOCKET_ERROR) err_display("move key up send()");
+			}
+
+			
 		}
 		
 		break;
@@ -844,7 +871,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_TIMER:
 		switch (wParam)
 		{
-		case 1:
+		case 1: {
 			hDC = GetDC(hWnd);
 
 			if (hBitmap == NULL)
@@ -860,7 +887,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 			/*oldBit2 = (HBITMAP)SelectObject(memDC2, arrow);
 			TransparentBlt(memDC1, fish.getRect().left + fish.getWidth() / 3, fish.getRect().top - 30, 30, 50, memDC2, 0, 0, 816, 1083, RGB(255, 255, 255));*/
-
 
 			//물고기
 			if (fish.is_caught == -1)
@@ -902,7 +928,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			//먹이
 			for (auto* f : foods)
 			{
-				
+
 				if (f->getFishKinds() == JELLYFISH)
 				{
 					oldBit2 = (HBITMAP)SelectObject(memDC2, jelly);
@@ -992,46 +1018,54 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			InvalidateRgn(hWnd, NULL, false);
 			ReleaseDC(hWnd, hDC);
 			break;
-
+		}
 			//물고기 이동 및 먹이 섭취
 		case 3:
 			if (fish.is_caught == -1)
 			{
-				float move_speed = 50;
+				fish.AnimateBySpeed();
+
+				// 다른 플레이어는 살아있을 때만 이동 처리
+				for (auto& p : players)
+					if (p.GetIsActive())
+						p.AnimateBySpeed();
+
+
+				/*float my_speed = fish.GetSpeed();
 				float duration = 5;
-				float x, y;
-				if (fish.getMoveDir() == 0)
-				{
-					//왼쪽
-					x = fish.GetX();
-					y = fish.GetY();
-					x -= move_speed / duration;
-					fish.Move((short)x, (short)y);
-				}
-				else if (fish.getMoveDir() == 1)
-				{
-					//오른쪽
-					x = fish.GetX();
-					y = fish.GetY();
-					x += move_speed / duration;
-					fish.Move((short)x, (short)y);
-				}
-				else if (fish.getMoveDir() == 2)
-				{
-					//위
-					x = fish.GetX();
-					y = fish.GetY();
-					y -= move_speed / duration;
-					fish.Move((short)x, (short)y);
-				}
-				else if (fish.getMoveDir() == 3)
-				{
-					//아래
-					x = fish.GetX();
-					y = fish.GetY();
-					y += move_speed / duration;
-					fish.Move((short)x, (short)y);
-				}
+				float my_x, my_y;*/
+				//if (fish.getMoveDir() == 0)
+				//{
+				//	//왼쪽
+				//	x = fish.GetX();
+				//	y = fish.GetY();
+				//	x -= move_speed / duration;
+				//	fish.Move((short)x, (short)y);
+				//}
+				//else if (fish.getMoveDir() == 1)
+				//{
+				//	//오른쪽
+				//	x = fish.GetX();
+				//	y = fish.GetY();
+				//	x += move_speed / duration;
+				//	fish.Move((short)x, (short)y);
+				//}
+				//else if (fish.getMoveDir() == 2)
+				//{
+				//	//위
+				//	x = fish.GetX();
+				//	y = fish.GetY();
+				//	y -= move_speed / duration;
+				//	fish.Move((short)x, (short)y);
+				//}
+				//else if (fish.getMoveDir() == 3)
+				//{
+				//	//아래
+				//	x = fish.GetX();
+				//	y = fish.GetY();
+				//	y += move_speed / duration;
+				//	fish.Move((short)x, (short)y);
+				//}
 			}
 			else
 			{

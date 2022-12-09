@@ -29,7 +29,12 @@ constexpr int SPAWN_HEIGHT = 600;
 
 #define FISH_INIT_WIDTH 120
 #define FISH_INIT_HEIGHT 140
-#define FISH_INIT_SPEED 50
+#define FISH_INIT_SPEED 40
+
+#define MOVE_LEFT  0b0001
+#define MOVE_RIGHT 0b0010
+#define MOVE_UP	   0b0100
+#define MOVE_DOWN  0b1000
 
 // packet의 type 구분
 enum PacketType {
@@ -54,6 +59,7 @@ enum PacketType {
 	SC_UPDATE_OBSTACLE,
 	SC_UPDATE_PLAYER_WH,
 	CS_INTERPOLATION,
+	SC_INTERPOLATION,
 	SC_CAUGHT
 };
 
@@ -67,13 +73,13 @@ enum ObjectType {
 	JELLYFISH
 };
 
-// 플레이어의 이동키 입력 구분
-enum PlayerMove {
-	LEFT_DOWN,
-	RIGHT_DOWN,
-	UP_DOWN,
-	DOWN_DOWN
-};
+//// 플레이어의 이동키 입력 구분
+//enum PlayerMove {
+//	MOVE_LEFT,
+//	MOVE_RIGHT,
+//	MOVE_UP,
+//	MOVE_DOWN
+//};
 
 enum FoodScore {
 	CRAB_SCORE = 1,
@@ -110,7 +116,7 @@ struct object_info_claculate {
 	short width, height;
 	bool b_hook = false;
 	int life = -1;
-	char dir = -1;
+	unsigned char dir = -1;
 };
 // 서버 -> 클라 패킷의 id 는 클라이언트 구분용 id
 
@@ -125,8 +131,10 @@ struct SC_CREATE_FOOD_PACKET
 
 struct SC_MOVE_PACKET {
 	char type;
+	unsigned char dir;
 	int id;
 	position pos;
+	int speed;
 };
 
 struct CS_LOGIN_PACKET {
@@ -140,7 +148,7 @@ struct SC_LOGIN_OK_PACKET {
 
 struct CS_MOVE_PACKET {
 	char type;
-	char dir;
+	unsigned char dir;
 };
 
 struct CS_CLICK_PACKET {
@@ -210,7 +218,7 @@ struct SC_CREATE_OBJCET_PACKET {
 	char type;
 	int index;
 	object_info object;
-	char dir;
+	unsigned char dir;
 };
 
 struct SC_ERASE_OBJECT_PACKET {
@@ -235,6 +243,12 @@ struct CS_DISCONNECT_PACKET {
 
 struct CS_INTERPOLATION_PACKET {
 	char type;
+	short x, y;
+};
+
+struct SC_INTERPOLATION_PACKET {
+	char type;
+	int id;
 	short x, y;
 };
 

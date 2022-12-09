@@ -58,7 +58,7 @@ public:
 
 	void SetX(short pos_x) { x = pos_x; }
 	void SetY(short pos_y) { y = pos_y; }
-	void SetSizeSpeed(short si) { width += si; height += si; speed *= FISH_INIT_WIDTH / width; }
+	void SetSizeSpeed(short si) { width += si; height += si; speed *= (double)FISH_INIT_WIDTH / (double)width; }
 	void ResetSizeSpeed() { width = FISH_INIT_WIDTH; height = FISH_INIT_HEIGHT; speed = FISH_INIT_SPEED; }
 
 	short GetX() const { return x; };
@@ -764,39 +764,35 @@ DWORD WINAPI RecvThread(LPVOID arg)
 					c.last_move = now;
 					CS_MOVE_PACKET* move_packet = reinterpret_cast<CS_MOVE_PACKET*>(buf);
 
-					client& cl = clients[this_id];
-
-					short x = cl.GetX();
-					short y = cl.GetY();
+					short x = c.GetX();
+					short y = c.GetY();
 
 					// 방향에 따라 x, y 값이 속도만큼 변함
-					switch (move_packet->dir) {
-					case LEFT_DOWN:
-						x -= cl.speed;
-						break;
-					case RIGHT_DOWN:
-						x += cl.speed;
-						break;
-					case UP_DOWN:
-						y -= cl.speed;
-						break;
-					case DOWN_DOWN:
-						y += cl.speed;
-						break;
-					}
+					unsigned char dir = move_packet->dir;
+
+					if ((dir & MOVE_LEFT) == MOVE_LEFT)
+						x -= c.speed;
+					if ((dir & MOVE_RIGHT) == MOVE_RIGHT)
+						x += c.speed;
+					if ((dir & MOVE_UP) == MOVE_UP)
+						y -= c.speed;
+					if ((dir & MOVE_DOWN) == MOVE_DOWN)
+						y += c.speed;
 
 					// 충돌처리 부분 필요
 
 					// 서버의 클라이언트 정보에 이동한 좌표값 최신화
-					cl.SetX(x);
-					cl.SetY(y);
+					c.SetX(x);
+					c.SetY(y);
 
 
-					std::cout << "x : " << x << ", y : " << y << ",  speed : " << cl.speed << ", is_caught : " << cl.is_caught << std::endl;
+					std::cout << "x : " << x << ", y : " << y << ",  speed : " << c.speed << ", is_caught : " << c.is_caught << std::endl;
 
 					SC_MOVE_PACKET packet;
 					packet.id = this_id;
 					packet.type = SC_PLAYER_MOVE;
+					packet.speed = c.speed;
+					packet.dir = dir;
 					packet.pos.x = x;
 					packet.pos.y = y;
 
@@ -819,6 +815,22 @@ DWORD WINAPI RecvThread(LPVOID arg)
 
 				clients[this_id].SetX(x);
 				clients[this_id].SetY(y);
+
+				// 서버에서 보간작업 이후 다른 클라이언트에도 보내줘야 함
+				// 자기 자신은 이미 처리했기 때문에 보내줄 필요 없음
+				SC_INTERPOLATION_PACKET p;
+				p.type = SC_INTERPOLATION;
+				p.id = this_id;
+				p.x = x;
+				p.y = y;
+				
+				for (auto& client : clients) {
+					if (client.id == -1) continue;
+					if (client.id == this_id) continue;
+					
+					client.send_packet(&p, sizeof(p));
+				}
+
 
 				overload_packet_process(buf, sizeof(CS_INTERPOLATION_PACKET), remain_packet);
 				break;

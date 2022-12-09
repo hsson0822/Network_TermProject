@@ -11,12 +11,13 @@ class Fish
 	int maxExp;
 	int state;
 	int moveCount;
-	int moveDir;
+	unsigned char moveDir;
 	BOOL goXY;
 	BOOL goLR;
 	BOOL goUD;
 	bool is_active;
 	int score;
+	int speed;
 public:
 	int is_caught;
 
@@ -45,8 +46,11 @@ public:
 	void addMoveCount();
 	void resetMoveCount();
 
-	int getMoveDir();
-	void setMoveDir(int m);
+	unsigned char getMoveDir();
+	void setMoveDir(unsigned char dir);
+
+	int GetSpeed() const;
+	void SetSpeed(int value);
 
 	BOOL isXY();
 	BOOL isLR();
@@ -69,4 +73,6 @@ public:
 	int GetScore() const { return score; }
 	
 	void Draw(const HDC& memDC1, const HDC& memDC2, HBITMAP image, HBITMAP arrow);
+
+	void AnimateBySpeed();
 };
