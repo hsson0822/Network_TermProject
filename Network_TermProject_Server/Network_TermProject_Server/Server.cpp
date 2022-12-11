@@ -284,9 +284,6 @@ void makeFood()
 
 chrono::system_clock::time_point obstacleStart, obstacleCurrent;
 int obstacleMs;
-chrono::system_clock::time_point updateStart, updateCurrent;
-int updateMs;
-
 
 void makeObstacle()
 {
@@ -297,6 +294,7 @@ void makeObstacle()
 	{
 
 		int obstacleKinds = random_object(dre);
+		//obstacleKinds = HOOK;
 		int obstacledir = rand() % 2;
 		short randX;
 		short randY;
@@ -327,7 +325,7 @@ void makeObstacle()
 			packet.object.type = HOOK;
 
 			randX = random_spawn_x(dre);
-			randY = 0;
+			randY = -HOOK_HEIGHT;
 			col_x = HOOK_WIDTH;
 			col_y = HOOK_HEIGHT;
 		}
@@ -375,6 +373,9 @@ void makeObstacle()
 		}
 	}
 }
+
+chrono::system_clock::time_point updateStart, updateCurrent;
+int updateMs;
 
 void updateObjects()
 {
@@ -439,15 +440,27 @@ void updateObjects()
 				}
 				case HOOK:
 				{
-					if (!oic.b_hook)
-						oic.object_info.pos.y += 5;
-					else if (!oic.b_hook && oic.object_info.pos.y >= 0)
-						oic.b_hook = true;
-					else if (oic.b_hook)
-						oic.object_info.pos.y -= 5;
-
-					if (oic.b_hook && oic.object_info.pos.y < oic.height)
+					if (!oic.i_hook && oic.object_info.pos.y < oic.height)
 					{
+						oic.object_info.pos.y += 5;
+						//cout << "!oic.b_hook " << "y : " << oic.object_info.pos.y << ", b_hook : " << oic.b_hook << endl;
+					}
+					else if (oic.i_hook < 60)
+					{
+						oic.i_hook++;
+						//cout << "!oic.b_hook && oic.object_info.pos.y >= 0 y : " << oic.object_info.pos.y << ", b_hook : " << oic.b_hook << endl;
+					}
+					else if (oic.object_info.pos.y >= 0)
+					{
+						oic.object_info.pos.y -= 5;
+						//cout << "oic.b_hook y : " << oic.object_info.pos.y << ", b_hook : " << oic.b_hook << endl;
+					}
+
+					if (oic.i_hook >= 60 && oic.object_info.pos.y <= 0)
+					{
+						//cout << "triggered" << endl;
+						//cout << "y : " << oic.object_info.pos.y << ", b_hook : " << oic.b_hook << endl;
+
 						for (client& client : clients)
 						{
 							if (client.id == -1)
@@ -681,7 +694,7 @@ void collision()
 						progress_Collision_po(cl_1, oic);
 				}
 			}
-			for (client& cl_2 : clients)
+			/*for (client& cl_2 : clients)
 			{
 				if (cl_2.id != -1 && cl_2.id != cl_1.id && cl_2.is_caught == -1)
 				{
@@ -689,7 +702,7 @@ void collision()
 					if (IntersectRect(&tmp, &playerRect_1, &playerRect_2))
 						progress_Collision_pp(tmp, cl_1, cl_2);
 				}
-			}
+			}*/
 		}
 	}
 }
@@ -700,7 +713,7 @@ void MovePlayer()
 
 	// 이동 쿨타임 마다 위치 갱신
 	for (auto& client : clients) {
-		printf("플레이어 : %d, is_caught : %d\n", client.id, client.is_caught);
+		//printf("플레이어 : %d, is_caught : %d\n", client.id, client.is_caught);
 		if (-1 == client.id) continue;
 		if (-1 != client.is_caught) continue;
 

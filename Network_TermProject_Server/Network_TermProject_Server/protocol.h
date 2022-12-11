@@ -123,7 +123,7 @@ struct object_info_claculate {
 	object_info object_info;
 	bool is_active = false;
 	short width, height;
-	bool b_hook = false;
+	int i_hook = 0;
 	int life = -1;
 	int dir = -1;
 	std::mutex life_lock;
