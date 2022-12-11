@@ -16,6 +16,7 @@ uniform_int_distribution<int> random_x(200, PLAYER_WIDTH);		// 플레이어 초�
 uniform_int_distribution<int> random_y(200, PLAYER_HEIGHT);
 uniform_int_distribution<int> random_spawn_x(0, WINDOWWIDTH);	// 오브젝트 랜덤 위치
 uniform_int_distribution<int> random_spawn_y(0, WINDOWHEIGHT);	
+uniform_int_distribution<int> random_spawn_y_hook(HOOK_HEIGHT, WINDOWHEIGHT);
 uniform_int_distribution<int> random_life(0, MAX_LIFE);			// 오브젝트 랜덤 체력
 uniform_int_distribution<int> random_object(0, 2);			// 오브젝트 랜덤 타입
 
@@ -294,11 +295,12 @@ void makeObstacle()
 	{
 
 		int obstacleKinds = random_object(dre);
-		//obstacleKinds = HOOK;
+		obstacleKinds = HOOK;
 		int obstacledir = rand() % 2;
-		short randX;
-		short randY;
+		short randX{};
+		short randY{};
 		int obstacleHP = random_life(dre);		// hp 랜덤 값
+		int y_hook{};
 
 		cout << obstacleKinds << " 장애물 생성" << endl;
 
@@ -328,6 +330,8 @@ void makeObstacle()
 			randY = -HOOK_HEIGHT;
 			col_x = HOOK_WIDTH;
 			col_y = HOOK_HEIGHT;
+			y_hook = random_spawn_y_hook(dre);
+			cout << "y_hook : " << y_hook << endl;
 		}
 		else
 		{
@@ -363,6 +367,7 @@ void makeObstacle()
 				oic.height = col_y;
 				oic.life = obstacleHP;
 				oic.dir = packet.dir;
+				oic.y_hook = y_hook;
 				break;
 			}
 		}
@@ -440,26 +445,26 @@ void updateObjects()
 				}
 				case HOOK:
 				{
-					if (!oic.i_hook && oic.object_info.pos.y < oic.height)
+					if (!oic.i_hook && oic.object_info.pos.y < oic.y_hook)
 					{
-						oic.object_info.pos.y += 5;
-						//cout << "!oic.b_hook " << "y : " << oic.object_info.pos.y << ", b_hook : " << oic.b_hook << endl;
+						oic.object_info.pos.y += oic.y_hook / 30;
+						//cout << "!oic.i_hook " << "y : " << oic.object_info.pos.y << ", i_hook : " << oic.i_hook << endl;
 					}
 					else if (oic.i_hook < 60)
 					{
 						oic.i_hook++;
-						//cout << "!oic.b_hook && oic.object_info.pos.y >= 0 y : " << oic.object_info.pos.y << ", b_hook : " << oic.b_hook << endl;
+						//cout << "oic.i_hook < 60 y : " << oic.object_info.pos.y << ", i_hook : " << oic.i_hook << endl;
 					}
-					else if (oic.object_info.pos.y >= 0)
+					else if (oic.object_info.pos.y >= -HOOK_HEIGHT)
 					{
-						oic.object_info.pos.y -= 5;
-						//cout << "oic.b_hook y : " << oic.object_info.pos.y << ", b_hook : " << oic.b_hook << endl;
+						oic.object_info.pos.y -= oic.y_hook / 30;
+						//cout << "oic.object_info.pos.y >= 0 y : " << oic.object_info.pos.y << ", b_hook : " << oic.i_hook << endl;
 					}
 
-					if (oic.i_hook >= 60 && oic.object_info.pos.y <= 0)
+					if (oic.i_hook >= 60 && oic.object_info.pos.y <= -HOOK_HEIGHT)
 					{
 						//cout << "triggered" << endl;
-						//cout << "y : " << oic.object_info.pos.y << ", b_hook : " << oic.b_hook << endl;
+						//cout << "y : " << oic.object_info.pos.y << ", b_hook : " << oic.i_hook << endl;
 
 						for (client& client : clients)
 						{
@@ -488,7 +493,20 @@ void updateObjects()
 							continue;
 						if (cl.is_caught == oic.object_info.type)
 						{
-							cl.SetX(oic.object_info.pos.x);
+							switch (cl.is_caught)
+							{
+							case NET:
+							case SHARK:
+							{
+								cl.SetX(oic.object_info.pos.x);
+								break;
+							}
+							case HOOK:
+							{
+								cl.SetY(oic.object_info.pos.y);
+								break;
+							}
+							}
 
 							SC_CAUGHT_PACKET packet;
 							packet.id = cl.id;
