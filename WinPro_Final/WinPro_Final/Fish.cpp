@@ -2,7 +2,6 @@
 #include "../../Network_TermProject_Server/Network_TermProject_Server/protocol.h"
 
 #include <iostream>
-#include <bitset>
 
 Fish::Fish()
 {
@@ -20,6 +19,8 @@ Fish::Fish()
 	speed = FISH_INIT_SPEED;
 	last_move = std::chrono::system_clock::now();
 	last_interpolation = last_move;
+	score = 0;
+	text_score = std::to_wstring(score);
 }
 
 Fish::Fish(int posX, int posY) : Fish()
@@ -104,18 +105,29 @@ void Fish::Move(short posX, short posY)
 	setRect(RECT{ x, y, x + width, y + height });
 }
 
+void Fish::SetScore(int val)
+{
+	score = val;
+	text_score = std::to_wstring(score);
+}
+
 void Fish::Draw(const HDC& memDC1, const HDC& memDC2, HBITMAP image, HBITMAP arrow)
 {
 	if (is_active) {
 		HBITMAP Bit = (HBITMAP)SelectObject(memDC2, image);
 		if (isLR())
-			TransparentBlt(memDC1, getRect().left, getRect().top, getWidth(), getHeight(), memDC2, 124 * getMoveCount(), 159, 124, 159, RGB(255, 1, 1));
+			TransparentBlt(memDC1, x, y, width, height, memDC2, 124 * getMoveCount(), 159, 124, 159, RGB(255, 1, 1));
 		else
-			TransparentBlt(memDC1, getRect().left, getRect().top, getWidth(), getHeight(), memDC2, 124 * getMoveCount(), 0, 124, 159, RGB(255, 1, 1));
-		
+			TransparentBlt(memDC1, x, y, width, height, memDC2, 124 * getMoveCount(), 0, 124, 159, RGB(255, 1, 1));
+
+		if (score > 0) {
+			SetBkMode(memDC1, TRANSPARENT);
+			TextOut(memDC1, x + (width / 2) - 20, y + height + 10, text_score.c_str(), text_score.size());
+		}
+
 		if (arrow) {
 			Bit = (HBITMAP)SelectObject(memDC2, arrow);
-			TransparentBlt(memDC1, getRect().left + width / 3, getRect().top - 30, 30, 50, memDC2, 0, 0, 816, 1083, RGB(255, 255, 255));
+			TransparentBlt(memDC1, x + width / 3, y - 30, 30, 50, memDC2, 0, 0, 816, 1083, RGB(255, 255, 255));
 		}
 	}
 }

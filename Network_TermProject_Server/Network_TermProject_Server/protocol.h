@@ -41,6 +41,7 @@ constexpr int PLAYER_HEIGHT = 600;
 #define MOVE_DOWN  0b1000
 #define MOVE_BIAS 200				// 이동 계산 시 speed 에 나눌 값
 
+#define FOOD_SPAWN_TIME 1000
 #define OBSTACLE_SPAWN_TIME 7000
 #define MOVE_COOLTIME 50			// 50ms 마다 위치 계산
 #define INTERPOLATION_TIME 200		// 위치 조정 200ms 마다
@@ -217,6 +218,7 @@ struct SC_UPDATE_PLAYER_PACKET {	// 플레이어 너비 높이 변경
 	char type;
 	int id;
 	short w, h;
+	int score;
 	int is_caught;
 };
 

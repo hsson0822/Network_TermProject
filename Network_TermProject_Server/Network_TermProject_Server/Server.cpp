@@ -16,7 +16,7 @@ uniform_int_distribution<int> random_x(200, PLAYER_WIDTH);		// 플레이어 초�
 uniform_int_distribution<int> random_y(200, PLAYER_HEIGHT);
 uniform_int_distribution<int> random_spawn_x(0, WINDOWWIDTH);	// 오브젝트 랜덤 위치
 uniform_int_distribution<int> random_spawn_y(0, WINDOWHEIGHT);	
-uniform_int_distribution<int> random_spawn_y_hook(HOOK_HEIGHT, WINDOWHEIGHT);
+uniform_int_distribution<int> random_spawn_y_hook(HOOK_HEIGHT, WINDOWHEIGHT - 200);
 uniform_int_distribution<int> random_life(0, MAX_LIFE);			// 오브젝트 랜덤 체력
 uniform_int_distribution<int> random_object(0, 2);			// 오브젝트 랜덤 타입
 
@@ -95,7 +95,7 @@ public:
 
 	void send_add_player(int id);
 	
-	void ReSpawn(int id);
+	void ReSpawn();
 };
 
 std::array<client, MAX_USER> clients;			// 클라이언트들의 컨테이너
@@ -131,8 +131,6 @@ void client::send_add_player(int id)
 
 void client::send_erase_object(object_info_claculate& oic)
 {
-	oic.is_active = false;
-
 	SC_ERASE_OBJECT_PACKET packet{};
 
 	if (oic.object_info.type >= CRAB) // CRAB, SQUID, JELLYFISH
@@ -167,15 +165,19 @@ void client::send_update_object(client& cl)
 	packet.h = cl.GetHeight();
 	packet.id = cl.id;
 	packet.is_caught = cl.is_caught;
+	packet.score = cl.score;
 
 	send_packet(&packet, sizeof(SC_UPDATE_PLAYER_PACKET));
 }
 
-void client::ReSpawn(int id)
+void client::ReSpawn()
 {
 	// 크기, 속도 초기화
 	ResetSizeSpeed();
 	is_caught = -1;
+	score -= OBSTACLE_SCORE;
+	if (score < 0)
+		score = 0;
 
 	SC_DEAD_PACKET packet;
 	packet.type = SC_PLAYER_DEAD;
@@ -209,14 +211,14 @@ void makeFood()
 
 	foodCurrent = chrono::system_clock::now();
 	foodMs = chrono::duration_cast<chrono::milliseconds>(foodCurrent - foodStart).count();
-	// 생성 후 지난 시간이 1500ms 를 넘으면 생성
-	if (foodMs > 1500)
+	// 생성 후 지난 시간이 1000ms 를 넘으면 생성
+	if (foodMs > FOOD_SPAWN_TIME)
 	{
-		for (const auto& c : clients)
-		{
-			if (c.id != -1)
-				cout << c.id << " 번 플레이어 좌표 x : " << c.GetX() << ", y : " << c.GetY() << endl;
-		}
+		//for (const auto& c : clients)
+		//{
+		//	if (c.id != -1)
+		//		cout << c.id << " 번 플레이어 좌표 x : " << c.GetX() << ", y : " << c.GetY() << endl;
+		//}
 
 		int foodKinds = random_object(dre) + 3;
 		short randX = random_spawn_x(dre);
@@ -403,13 +405,14 @@ void updateObjects()
 
 					if ((oic.dir == RIGHT && oic.object_info.pos.x >= WINDOWWIDTH) || (oic.dir == LEFT && oic.object_info.pos.x + oic.width <= 0))
 					{
+						oic.is_active = false;
 						for (client& client : clients)
 						{
 							if (client.id == -1)
 								continue;
 							if (client.is_caught == oic.object_info.type)
 							{
-								client.ReSpawn(client.id);
+								client.ReSpawn();
 								// 리스폰
 							}
 							client.send_erase_object(oic);
@@ -428,13 +431,14 @@ void updateObjects()
 
 					if ((oic.dir == RIGHT && oic.object_info.pos.x >= WINDOWWIDTH) || (oic.dir == LEFT && oic.object_info.pos.x + oic.width <= 0))
 					{
+						oic.is_active = false;
 						for (client& client : clients)
 						{
 							if (client.id == -1)
 								continue;
 							if (client.is_caught == oic.object_info.type)
 							{
-								client.ReSpawn(client.id);
+								client.ReSpawn();
 								// 리스폰
 							}
 							client.send_erase_object(oic);
@@ -466,13 +470,14 @@ void updateObjects()
 						//cout << "triggered" << endl;
 						//cout << "y : " << oic.object_info.pos.y << ", b_hook : " << oic.i_hook << endl;
 
+						oic.is_active = false;
 						for (client& client : clients)
 						{
 							if (client.id == -1)
 								continue;
 							else if (client.is_caught == oic.object_info.type)
 							{
-								client.ReSpawn(client.id);
+								client.ReSpawn();
 								// 리스폰
 							}
 							client.send_erase_object(oic);
@@ -601,9 +606,9 @@ void progress_Collision_po(client& client, object_info_claculate& oic)
 	case SHARK:
 	case HOOK:
 	{
-		cout << "충돌 : " << client.id << "번 플레이어, "<< oic.object_info.type << " : " << oic.object_info.id << endl;
+		//cout << "충돌 : " << client.id << "번 플레이어, "<< oic.object_info.type << " : " << oic.object_info.id << endl;
 		client.is_caught = oic.object_info.type;
-		client.score -= OBSTACLE_SCORE;
+
 		for (auto& cl : clients)
 		{
 			if (cl.id == -1)
@@ -618,6 +623,7 @@ void progress_Collision_po(client& client, object_info_claculate& oic)
 
 		client.score += CRAB_SCORE;
 		client.SetSizeSpeed(CRAB_SCORE);
+		oic.is_active = false;
 
 		for (auto& cl : clients)
 		{
@@ -635,6 +641,7 @@ void progress_Collision_po(client& client, object_info_claculate& oic)
 		client.score += SQUID_SCORE;
 		client.SetSizeSpeed(SQUID_SCORE);
 
+		oic.is_active = false;
 		for (auto& cl : clients)
 		{
 			if (cl.id == -1)
@@ -652,6 +659,7 @@ void progress_Collision_po(client& client, object_info_claculate& oic)
 		client.score += JELLYFISH_SCORE;
 		client.SetSizeSpeed(JELLYFISH_SCORE);
 
+		oic.is_active = false;
 		for (auto& cl : clients)
 		{
 			cl.send_erase_object(oic);
@@ -669,6 +677,7 @@ void progress_Collision_mo(object_info_claculate& oic)
 	oic.life_lock.lock();
 	if (--oic.life == -1)
 	{
+		oic.is_active = false;
 		oic.life_lock.unlock();
 
 		for (auto& cl : clients) {
@@ -946,7 +955,6 @@ DWORD WINAPI RecvThread(LPVOID arg)
 
 			case CS_LBUTTONCLICK: {
 				CS_CLICK_PACKET* click_packet = reinterpret_cast<CS_CLICK_PACKET*>(buf);
-				cout << click_packet->point.x << ", " << click_packet->point.y << endl;
 				for (auto& oic : objects_calculate)
 				{
 					if (oic.is_active && oic.life >= 0) // life가 0 이상이면 장애물임
@@ -1019,8 +1027,6 @@ DWORD WINAPI RecvThread(LPVOID arg)
 						clients[i].SetY(y);
 						packet.pos[i].x = x;
 						packet.pos[i].y = y;
-
-						std::cout << i << " 플레이어의 좌표 : " << x << ", " << y << std::endl;
 					}
 					for (auto& client : clients)
 						client.send_packet(&packet, sizeof(SC_GAME_START_PACKET));

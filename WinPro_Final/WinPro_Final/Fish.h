@@ -1,6 +1,7 @@
 #pragma once
 #include <windows.h>
 #include <chrono>
+#include <string>
 
 class Fish
 {
@@ -18,6 +19,7 @@ class Fish
 	BOOL goUD;
 	bool is_active;
 	int score;
+	std::wstring text_score;
 	double speed;
 	std::chrono::system_clock::time_point last_move;
 
@@ -70,11 +72,11 @@ public:
 	void SetY(short posY) { y = posY; }
 	void SetIsActive(bool active) { is_active = active; }
 	void setWH(int w, int h) { width = w; height = h; }
-	void SetScore(int value) { score = value; }
 	short GetX() const { return x; };
 	short GetY() const { return y; };
 	bool GetIsActive() const { return is_active; }
 	int GetScore() const { return score; }
+	void SetScore(int val);
 	
 	void Draw(const HDC& memDC1, const HDC& memDC2, HBITMAP image, HBITMAP arrow);
 

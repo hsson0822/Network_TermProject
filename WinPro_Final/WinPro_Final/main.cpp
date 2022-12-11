@@ -268,12 +268,12 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				int other_id = packet->id;
 				if (id == other_id) {
 					fish.Move(packet->x, packet->y);
-					fish.SetScore(fish.GetScore() - packet->score);
+					fish.SetScore(packet->score);
 					printf("플레이어 %d 리스폰\n", other_id);
 				}
 				else {
 					players[other_id].Move(packet->x, packet->y);
-					players[other_id].SetScore(players[other_id].GetScore() - packet->score);
+					players[other_id].SetScore(packet->score);
 					printf("플레이어 %d 리스폰\n", other_id);
 				}
 
@@ -289,19 +289,21 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				short w = packet->w;
 				short h = packet->h;
 
-				cout << packet->id << "번 플레이어 w : " << w << ", h : " << h << endl;
+				cout << packet->id << "번 플레이어 w : " << w << ", h : " << h << " is_caught " << packet->is_caught << endl;
 
 				if (id == packet->id)
 				{
 					fish.setWH(packet->w, packet->h);
 					fish.is_caught = packet->is_caught;
+					fish.SetScore(packet->score);
 					if (-1 != fish.is_caught)
 						fish.setMoveDir(0);
 				
 				}
 				else {
 					players[packet->id].setWH(packet->w, packet->h);
-					
+					players[packet->id].SetScore(packet->score);
+					players[packet->id].is_caught = packet->is_caught;
 					if (-1 != players[packet->id].is_caught)
 						players[packet->id].setMoveDir(0);
 
