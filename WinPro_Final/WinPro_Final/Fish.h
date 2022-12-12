@@ -77,8 +77,9 @@ public:
 	bool GetIsActive() const { return is_active; }
 	int GetScore() const { return score; }
 	void SetScore(int val);
-	
+
 	void Draw(const HDC& memDC1, const HDC& memDC2, HBITMAP image, HBITMAP arrow);
 
 	void AnimateBySpeed();
+
 };

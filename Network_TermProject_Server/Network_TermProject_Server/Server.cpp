@@ -768,18 +768,24 @@ DWORD WINAPI CalculateThread(LPVOID arg)
 		duration = chrono::duration_cast<chrono::seconds>(current_time - start_time).count();
 	}
 
+	if (id > 0) {
+		// 종료 패킷 전송
+		SC_GAME_OVER_PACKET packet;
+		packet.type = SC_GAME_OVER;
+		for (int i = 0; i < MAX_USER; ++i)
+			packet.scores[i] = clients[i].score;
 
-	// 종료 패킷 전송
-	SC_GAME_OVER_PACKET packet;
-	packet.type = SC_GAME_OVER;
-	for (int i = 0; i < MAX_USER; ++i)
-		packet.scores[i] = clients[i].score;
+		for (auto& c : clients) {
+			if (-1 == c.id) continue;
 
-	for (auto& c : clients) {
-		if (-1 == c.id) continue;
-
-		c.send_packet(&packet, sizeof(packet));
+			c.send_packet(&packet, sizeof(packet));
+		}
 	}
+
+	id_oic = -1;
+	for (auto& oic : objects_calculate)
+		oic.is_active = false;
+	
 
 	return 0;
 }
