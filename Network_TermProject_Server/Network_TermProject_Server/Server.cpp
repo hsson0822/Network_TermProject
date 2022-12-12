@@ -16,9 +16,11 @@ uniform_int_distribution<int> random_x(200, PLAYER_WIDTH);		// 플레이어 초�
 uniform_int_distribution<int> random_y(200, PLAYER_HEIGHT);
 uniform_int_distribution<int> random_spawn_x(0, WINDOWWIDTH);	// 오브젝트 랜덤 위치
 uniform_int_distribution<int> random_spawn_y(0, WINDOWHEIGHT);	
-uniform_int_distribution<int> random_spawn_y_hook(HOOK_HEIGHT, WINDOWHEIGHT - 200);
-uniform_int_distribution<int> random_life(0, MAX_LIFE);			// 오브젝트 랜덤 체력
+uniform_int_distribution<int> random_spawn_y_hook(HOOK_HEIGHT, WINDOWHEIGHT - HOOK_HEIGHT);
+uniform_int_distribution<int> random_spawn_o_speed(7, 20);
+uniform_int_distribution<int> random_life(1, MAX_LIFE);			// 오브젝트 랜덤 체력
 uniform_int_distribution<int> random_object(0, 2);			// 오브젝트 랜덤 타입
+uniform_int_distribution<int> random_dir(0, 1);
 
 // 클라이언트의 정보가 담김
 class client {
@@ -292,17 +294,18 @@ void makeObstacle()
 {
 	obstacleCurrent = chrono::system_clock::now();
 	obstacleMs = chrono::duration_cast<chrono::milliseconds>(obstacleCurrent - obstacleStart).count();
-	// 생성 후 지난 시간이 30000ms 를 넘으면 생성
+	// 생성 후 지난 시간이 7초를 넘으면 생성
 	if (obstacleMs > OBSTACLE_SPAWN_TIME)
 	{
 
 		int obstacleKinds = random_object(dre);
-		obstacleKinds = HOOK;
-		int obstacledir = rand() % 2;
+		obstacleKinds = NET;
+		int obstacledir = random_dir(dre);
 		short randX{};
 		short randY{};
 		int obstacleHP = random_life(dre);		// hp 랜덤 값
 		int y_hook{};
+		int speed = random_spawn_o_speed(dre);
 
 		cout << obstacleKinds << " 장애물 생성" << endl;
 
@@ -318,10 +321,15 @@ void makeObstacle()
 			if (obstacledir == LEFT)
 				randX = WINDOWWIDTH;
 			else
-				randX = -400;
-			randY = 0;
+				randX = -NET_WIDTH;
 			col_x = NET_WIDTH;
-			col_y = NET_HEIGHT;
+			uniform_int_distribution<int> random_spawn_h_net(NET_HEIGHT, WINDOWHEIGHT / 2);
+			col_y = random_spawn_h_net(dre);
+			packet.col_x = col_x;
+			packet.col_y = col_y;
+			uniform_int_distribution<int> random_spawn_y_net(0, WINDOWHEIGHT - col_y);
+			randY = random_spawn_y_net(dre);
+
 		}
 		else if (obstacleKinds == HOOK)
 		{
@@ -332,6 +340,8 @@ void makeObstacle()
 			randY = -HOOK_HEIGHT;
 			col_x = HOOK_WIDTH;
 			col_y = HOOK_HEIGHT;
+			packet.col_x = col_x;
+			packet.col_y = col_y;
 			y_hook = random_spawn_y_hook(dre);
 			cout << "y_hook : " << y_hook << endl;
 		}
@@ -343,10 +353,10 @@ void makeObstacle()
 			if (obstacledir == LEFT)
 				randX = WINDOWWIDTH;
 			else
-				randX = -100;
+				randX = -SHARK_WIDTH;
 			randY = random_spawn_y(dre);
-			col_x = SHARK_WIDTH;
-			col_y = SHARK_HEIGHT;
+			packet.col_x = SHARK_WIDTH;
+			packet.col_y = SHARK_HEIGHT;
 		}
 
 		obstacleStart = chrono::system_clock::now();
@@ -370,6 +380,7 @@ void makeObstacle()
 				oic.life = obstacleHP;
 				oic.dir = packet.dir;
 				oic.y_hook = y_hook;
+				oic.o_speed = speed;
 				break;
 			}
 		}
@@ -399,9 +410,9 @@ void updateObjects()
 				case NET:
 				{
 					if (oic.dir == RIGHT)
-						oic.object_info.pos.x += 10;
+						oic.object_info.pos.x += oic.o_speed;
 					else if (oic.dir == LEFT)
-						oic.object_info.pos.x -= 10;
+						oic.object_info.pos.x -= oic.o_speed;
 
 					if ((oic.dir == RIGHT && oic.object_info.pos.x >= WINDOWWIDTH) || (oic.dir == LEFT && oic.object_info.pos.x + oic.width <= 0))
 					{
@@ -425,9 +436,9 @@ void updateObjects()
 				case SHARK:
 				{
 					if (oic.dir == RIGHT)
-						oic.object_info.pos.x += 7;
+						oic.object_info.pos.x += oic.o_speed;
 					else if (oic.dir == LEFT)
-						oic.object_info.pos.x -= 7;
+						oic.object_info.pos.x -= oic.o_speed;
 
 					if ((oic.dir == RIGHT && oic.object_info.pos.x >= WINDOWWIDTH) || (oic.dir == LEFT && oic.object_info.pos.x + oic.width <= 0))
 					{
@@ -452,24 +463,18 @@ void updateObjects()
 					if (!oic.i_hook && oic.object_info.pos.y < oic.y_hook)
 					{
 						oic.object_info.pos.y += oic.y_hook / 30;
-						//cout << "!oic.i_hook " << "y : " << oic.object_info.pos.y << ", i_hook : " << oic.i_hook << endl;
 					}
 					else if (oic.i_hook < 60)
 					{
 						oic.i_hook++;
-						//cout << "oic.i_hook < 60 y : " << oic.object_info.pos.y << ", i_hook : " << oic.i_hook << endl;
 					}
 					else if (oic.object_info.pos.y >= -HOOK_HEIGHT)
 					{
 						oic.object_info.pos.y -= oic.y_hook / 30;
-						//cout << "oic.object_info.pos.y >= 0 y : " << oic.object_info.pos.y << ", b_hook : " << oic.i_hook << endl;
 					}
 
 					if (oic.i_hook >= 60 && oic.object_info.pos.y <= -HOOK_HEIGHT)
 					{
-						//cout << "triggered" << endl;
-						//cout << "y : " << oic.object_info.pos.y << ", b_hook : " << oic.i_hook << endl;
-
 						oic.is_active = false;
 						for (client& client : clients)
 						{
@@ -536,65 +541,6 @@ void updateObjects()
 			}
 		}
 		
-	}
-}
-
-void progress_Collision_pp(RECT tmp, client& cl_1, client& cl_2)
-{
-	//cout << cl_1.id << "번 플레이어와" << cl_2.id << "번 플레이어가 " << tmp.right - tmp.left << " x " << tmp.bottom - tmp.top << " 크기만큼 충돌" << endl;
-
-	if (cl_1.GetWidth() > cl_2.GetWidth())
-	{
-		// rect가 
-		//
-		if (cl_2.is_pulled)
-		{
-			for (client& cl_3 : clients)
-			{
-				if (cl_3.id != cl_1.id && cl_3.id != cl_2.id)
-				{
-					if (cl_3.GetWidth() > cl_1.GetWidth())
-					{
-
-					}
-					else if (cl_3.GetWidth() < cl_1.GetWidth())
-					{
-
-					}
-					else
-					{
-
-					}
-				}
-			}
-		}
-	}
-	else if (cl_1.GetWidth() < cl_2.GetWidth())
-	{
-		if (cl_1.is_pulled)
-		{
-			for (client& cl_3 : clients)
-			{
-				if (cl_3.id != cl_1.id && cl_3.id != cl_2.id)
-				{
-					if (cl_3.GetWidth() > cl_2.GetWidth())
-					{
-					}
-					else if (cl_3.GetWidth() < cl_2.GetWidth())
-					{
-
-					}
-					else
-					{
-
-					}
-				}
-			}
-		}
-	}
-	else
-	{
-
 	}
 }
 
@@ -721,15 +667,6 @@ void collision()
 						progress_Collision_po(cl_1, oic);
 				}
 			}
-			/*for (client& cl_2 : clients)
-			{
-				if (cl_2.id != -1 && cl_2.id != cl_1.id && cl_2.is_caught == -1)
-				{
-					RECT playerRect_2 = RECT{ cl_2.GetX(), cl_2.GetY(), cl_2.GetX() + cl_2.GetWidth(), cl_2.GetY() + cl_2.GetHeight() };
-					if (IntersectRect(&tmp, &playerRect_1, &playerRect_2))
-						progress_Collision_pp(tmp, cl_1, cl_2);
-				}
-			}*/
 		}
 	}
 }
@@ -814,7 +751,6 @@ DWORD WINAPI CalculateThread(LPVOID arg)
 
 	while (duration < TIME_LIMIT)
 	{
-
 		// 플레이어가 한명이라도 있어야만 계산쓰레드가 작동하도록 함
 		if (id > 0) {
 			MovePlayer();

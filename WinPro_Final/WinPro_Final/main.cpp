@@ -100,6 +100,8 @@ void overload_packet_process(char* buf, int packet_size, int& remain_packet)
 }
 
 static vector<Food*> foods;
+int col_x, col_y;
+
 
 // 클라이언트에서 네트워크 통신용 쓰레드
 DWORD WINAPI NetworkThread(LPVOID arg)
@@ -149,13 +151,16 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				eventNum = packet->object.type;
 				short x = packet->object.pos.x;
 				short y = packet->object.pos.y;
+				col_x = packet->col_x;
+				col_y = packet->col_y;
+
 
 				switch (eventNum)
 				{
 				case NET:
 					netDir = packet->dir;
 
-					netRect = { x, y, x + NET_WIDTH, y + NET_HEIGHT };
+					netRect = { x, y, x + col_x, y + col_y };
 
 					cout << "그물" << endl;
 					break;
@@ -456,7 +461,7 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 
 				// 게임 종료시 점수를 마지막으로 받음
 				for (int i = 0; i < MAX_USER; ++i) {
-					map[i] = i*100;
+					map[i] = packet->scores[i];
 				}
 
 
@@ -963,9 +968,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			case 0:
 				oldBit2 = (HBITMAP)SelectObject(memDC2, net);
 				if (netDir == 0)
-					TransparentBlt(memDC1, netRect.left, netRect.top, 200, 400, memDC2, 1364, 0, 1364, 2438, RGB(255, 1, 1));
+					TransparentBlt(memDC1, netRect.left, netRect.top, col_x, col_y, memDC2, 1364, 0, 1364, 2438, RGB(255, 1, 1));
 				else
-					TransparentBlt(memDC1, netRect.left, netRect.top, 200, 400, memDC2, 0, 0, 1364, 2438, RGB(255, 1, 1));
+					TransparentBlt(memDC1, netRect.left, netRect.top, col_x, col_y, memDC2, 0, 0, 1364, 2438, RGB(255, 1, 1));
 				break;
 
 			case 1:

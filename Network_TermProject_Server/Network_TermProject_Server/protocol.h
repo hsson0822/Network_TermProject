@@ -14,12 +14,12 @@ constexpr int PLAYER_HEIGHT = 600;
 #define WINDOWWIDTH 1800
 #define WINDOWHEIGHT 900
 #define OBSTACLE_SCORE 10
-#define MAX_LIFE 1
+#define MAX_LIFE 30
 
 #define NET_WIDTH 200
 #define NET_HEIGHT 400
 #define HOOK_WIDTH 100
-#define HOOK_HEIGHT 300
+#define HOOK_HEIGHT 400
 #define SHARK_WIDTH 200
 #define SHARK_HEIGHT 100
 
@@ -41,7 +41,7 @@ constexpr int PLAYER_HEIGHT = 600;
 #define MOVE_DOWN  0b1000
 #define MOVE_BIAS 200				// 이동 계산 시 speed 에 나눌 값
 
-#define FOOD_SPAWN_TIME 1000
+#define FOOD_SPAWN_TIME 500
 #define OBSTACLE_SPAWN_TIME 7000
 #define MOVE_COOLTIME 50			// 50ms 마다 위치 계산
 #define INTERPOLATION_TIME 200		// 위치 조정 200ms 마다
@@ -128,6 +128,7 @@ struct object_info_claculate {
 	int y_hook;
 	int life = -1;
 	int dir = -1;
+	int o_speed;
 	std::mutex life_lock;
 };
 // 서버 -> 클라 패킷의 id 는 클라이언트 구분용 id
@@ -231,6 +232,7 @@ struct SC_CREATE_OBJCET_PACKET {
 	int index;
 	object_info object;
 	unsigned char dir;
+	short col_x, col_y;
 };
 
 struct SC_ERASE_OBJECT_PACKET {
