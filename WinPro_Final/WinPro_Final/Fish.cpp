@@ -25,14 +25,11 @@ Fish::Fish()
 
 Fish::Fish(int posX, int posY) : Fish()
 {
-	Fish();
 	rect = { posX,posY,posX + width, posY + height };
 }
 
-
 RECT Fish::getRect() { return rect; }
 void Fish::setRect(RECT r) { rect = r; }
-
 
 
 int Fish::getAge() { return age; }

@@ -145,7 +145,6 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 			switch (buf[0]) {
 			case SC_CREATE_OBSTACLE:
 			{
-				cout << "받음 - 장애물" << endl;
 				SC_CREATE_OBJCET_PACKET* packet = reinterpret_cast<SC_CREATE_OBJCET_PACKET*>(buf);
 
 				eventNum = packet->object.type;
@@ -159,21 +158,16 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				{
 				case NET:
 					netDir = packet->dir;
-
 					netRect = { x, y, x + col_x, y + col_y };
-
-					cout << "그물" << endl;
 					break;
 
 				case HOOK:
 					hookRect = { x, y, x + HOOK_WIDTH, y + HOOK_HEIGHT };
-					cout << "바늘" << endl;
 					break;
 
 				case SHARK:
 					sharkDir = packet->dir;
 					sharkRect = { x, y, x + SHARK_WIDTH, y + SHARK_HEIGHT };
-					cout << "상어" << endl;
 					break;
 				}
 
@@ -183,7 +177,6 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 
 			case SC_CREATE_FOOD:
 			{
-				cout << "받음 - 음식" << endl;
 				SC_CREATE_OBJCET_PACKET* packet = reinterpret_cast<SC_CREATE_OBJCET_PACKET*>(buf);
 
 				short x = packet->object.pos.x;
@@ -191,17 +184,14 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				switch (packet->object.type) {
 				case JELLYFISH:
 					foods.push_back(new Food(JELLYFISH, x, y, JELLYFISH_WIDTH, JELLYFISH_HEIGHT, 4, packet->index));
-					cout << "해파리, " << packet->index << endl;
 					break;
 
 				case CRAB:
 					foods.push_back(new Food(CRAB, x, y, CRAB_WIDTH, CRAB_HEIGHT, 2, packet->index));
-					cout << "게, " << packet->index << endl;
 					break;
 
 				case SQUID:
 					foods.push_back(new Food(SQUID, x, y, SQUID_WIDTH, SQUID_HEIGHT, 10, packet->index));
-					cout << "오징어, " << packet->index << endl;
 					break;
 
 				}
@@ -211,7 +201,6 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 			}
 			case SC_ERASE_FOOD:
 			{
-				cout << "SC_ERASE_FOOD" << endl;
 				SC_ERASE_OBJECT_PACKET* packet = reinterpret_cast<SC_ERASE_OBJECT_PACKET*>(buf);
 				int id = packet->index;
 				cout << packet->index << ", " << packet->object_type << endl;
@@ -232,10 +221,7 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 			}
 			case SC_ERASE_OBSTACLE:
 			{
-				cout << "SC_ERASE_OBSTACLE" << endl;
 				SC_ERASE_OBJECT_PACKET* packet = reinterpret_cast<SC_ERASE_OBJECT_PACKET*>(buf);
-				cout << packet->index << ", " << packet->object_type << endl;
-
 				eventNum = -1;
 
 				overload_packet_process(buf, sizeof(SC_ERASE_OBJECT_PACKET), remain_packet);
@@ -274,12 +260,10 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				if (id == other_id) {
 					fish.Move(packet->x, packet->y);
 					fish.SetScore(packet->score);
-					printf("플레이어 %d 리스폰\n", other_id);
 				}
 				else {
 					players[other_id].Move(packet->x, packet->y);
 					players[other_id].SetScore(packet->score);
-					printf("플레이어 %d 리스폰\n", other_id);
 				}
 
 				overload_packet_process(buf, sizeof(SC_DEAD_PACKET), remain_packet);
@@ -288,13 +272,10 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 
 			case SC_UPDATE_PLAYER_WH:
 			{
-				cout << "SC_UPDATE_PLAYER_WH" << endl;
 				SC_UPDATE_PLAYER_PACKET* packet = reinterpret_cast<SC_UPDATE_PLAYER_PACKET*>(buf);
 
 				short w = packet->w;
 				short h = packet->h;
-
-				cout << packet->id << "번 플레이어 w : " << w << ", h : " << h << " is_caught " << packet->is_caught << endl;
 
 				if (id == packet->id)
 				{
@@ -377,13 +358,11 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 						fish.SetX(packet->pos[i].x);
 						fish.SetY(packet->pos[i].y);
 						fish.Move(packet->pos[i].x, packet->pos[i].y);
-						printf("%d 의 좌표  x : %d , y : %d\n", i, packet->pos[i].x, packet->pos[i].y);
 					}
 					else {
 						players[i].SetX(packet->pos[i].x);
 						players[i].SetY(packet->pos[i].y);
 						players[i].Move(packet->pos[i].x, packet->pos[i].y);
-						printf("%d 의 좌표  x : %d , y : %d\n", i, packet->pos[i].x, packet->pos[i].y);
 					}
 				}
 
@@ -411,7 +390,6 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 					fish.SetSpeed(packet->speed);
 				}
 				else {
-					cout << other_id << "의 방향 : " << bitset<8>(packet->dir) << endl;
 					players[other_id].setMoveDir(packet->dir);
 					players[other_id].SetSpeed(packet->speed);
 				}
@@ -445,7 +423,6 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				else {
 					players[other_id].Move(packet->x, packet->y);
 				}
-				printf("%d 번 플레이어 x : %d, y : %d\n", other_id, packet->x, packet->y);
 
 
 				overload_packet_process(buf, sizeof(SC_CAUGHT_PACKET), remain_packet);
@@ -900,30 +877,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			/*oldBit2 = (HBITMAP)SelectObject(memDC2, arrow);
 			TransparentBlt(memDC1, fish.getRect().left + fish.getWidth() / 3, fish.getRect().top - 30, 30, 50, memDC2, 0, 0, 816, 1083, RGB(255, 255, 255));*/
 
-			//물고기
-			if (fish.is_caught == -1)
-			{
-				if (!eventOut || angryCount > 30) { // 평상시
-					oldBit2 = (HBITMAP)SelectObject(memDC2, normalImage);
-					fish.Draw(memDC1, memDC2, normalImage, arrow);
-					for (auto& player : players)
-						player.Draw(memDC1, memDC2, normalImage, nullptr);
-				}
-				else if (eventOut) { // 이벤트 5회 클릭
-					oldBit2 = (HBITMAP)SelectObject(memDC2, angryImage);
-					fish.Draw(memDC1, memDC2, angryImage, arrow);
-					for (auto& player : players)
-						player.Draw(memDC1, memDC2, angryImage, nullptr);
-					angryCount++;
-				}
-			}
+
+			if(-1 == fish.is_caught)
+				fish.Draw(memDC1, memDC2, normalImage, arrow);
 			else
-			{
-				oldBit2 = (HBITMAP)SelectObject(memDC2, cryImage);
 				fish.Draw(memDC1, memDC2, cryImage, arrow);
-				for (auto& player : players)
+
+			for (auto& player : players) {
+				if (-1 == player.is_caught) 
+					player.Draw(memDC1, memDC2, normalImage, nullptr);
+				else 
 					player.Draw(memDC1, memDC2, cryImage, nullptr);
 			}
+
 			for (auto& player : players)
 				player.addMoveCount();
 			fish.addMoveCount();
