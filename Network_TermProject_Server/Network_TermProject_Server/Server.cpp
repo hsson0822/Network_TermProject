@@ -226,8 +226,6 @@ void makeFood()
 		short randX = random_spawn_x(dre);
 		short randY = random_spawn_y(dre);
 
-		cout << foodKinds << " 먹이 생성 x:" << randX << "  y:" << randY << endl;
-
 		SC_CREATE_OBJCET_PACKET packet;
 		packet.type = SC_CREATE_FOOD;
 		short col_x{}, col_y{};
@@ -264,7 +262,6 @@ void makeFood()
 		{
 			if (!oic.is_active)
 			{
-				cout << id_oic << endl;
 				id_oic++;
 				oic.object_info.id = id_oic;
 				oic.is_active = true;
@@ -273,16 +270,17 @@ void makeFood()
 				oic.object_info.pos.y = packet.object.pos.y;
 				oic.width = col_x;
 				oic.height = col_y;
+
+				packet.index = id_oic;
+
+				for (auto& client : clients) {
+					if (client.id != -1)
+						client.send_packet(&packet, sizeof(SC_CREATE_OBJCET_PACKET));
+				}
+
 				break;
 			}
 		}
-		packet.index = id_oic;
-
-		for (auto& client : clients) {
-			if (client.id != -1)
-				client.send_packet(&packet, sizeof(SC_CREATE_OBJCET_PACKET));
-		}
-		cout << "========================" << endl;
 	}
 
 }
@@ -306,8 +304,6 @@ void makeObstacle()
 		int obstacleHP = random_life(dre);		// hp 랜덤 값
 		int y_hook{};
 		int speed = random_spawn_o_speed(dre);
-
-		cout << obstacleKinds << " 장애물 생성" << endl;
 
 		SC_CREATE_OBJCET_PACKET packet;
 		packet.type = SC_CREATE_OBSTACLE;
@@ -343,7 +339,6 @@ void makeObstacle()
 			packet.col_x = col_x;
 			packet.col_y = col_y;
 			y_hook = random_spawn_y_hook(dre);
-			cout << "y_hook : " << y_hook << endl;
 		}
 		else
 		{
@@ -381,14 +376,18 @@ void makeObstacle()
 				oic.dir = packet.dir;
 				oic.y_hook = y_hook;
 				oic.o_speed = speed;
+
+				packet.index = id_oic;
+
+				for (auto& client : clients) {
+					client.send_packet(&packet, sizeof(SC_CREATE_OBJCET_PACKET));
+				}
+
 				break;
 			}
 		}
-		packet.index = id_oic;
 
-		for (auto& client : clients) {
-			client.send_packet(&packet, sizeof(SC_CREATE_OBJCET_PACKET));
-		}
+
 	}
 }
 
@@ -427,7 +426,11 @@ void updateObjects()
 								// 리스폰
 							}
 							client.send_erase_object(oic);
-							client.send_update_object(client);
+							for (auto& c : clients) {
+								if (-1 == c.id) continue;
+
+								c.send_update_object(client);
+							}
 						}
 
 					}
@@ -453,7 +456,11 @@ void updateObjects()
 								// 리스폰
 							}
 							client.send_erase_object(oic);
-							client.send_update_object(client);
+							for (auto& c : clients) {
+								if (-1 == c.id) continue;
+
+								c.send_update_object(client);
+							}
 						}
 					}
 					break;
@@ -486,7 +493,12 @@ void updateObjects()
 								// 리스폰
 							}
 							client.send_erase_object(oic);
-							client.send_update_object(client);
+
+							for (auto& c : clients) {
+								if (-1 == c.id) continue;
+
+								c.send_update_object(client);
+							}
 						}
 					}
 					break;
@@ -552,7 +564,6 @@ void progress_Collision_po(client& client, object_info_claculate& oic)
 	case SHARK:
 	case HOOK:
 	{
-		//cout << "충돌 : " << client.id << "번 플레이어, "<< oic.object_info.type << " : " << oic.object_info.id << endl;
 		client.is_caught = oic.object_info.type;
 
 		for (auto& cl : clients)
@@ -565,8 +576,6 @@ void progress_Collision_po(client& client, object_info_claculate& oic)
 	}
 	case CRAB:
 	{
-		cout << "충돌 : " << client.id << "번 플레이어, 게 : " << oic.object_info.id << endl;
-
 		client.score += CRAB_SCORE;
 		client.SetSizeSpeed(CRAB_SCORE);
 		oic.is_active = false;
@@ -583,7 +592,6 @@ void progress_Collision_po(client& client, object_info_claculate& oic)
 	}
 	case SQUID:
 	{
-		cout << "충돌 : " << client.id << "번 플레이어, 오징어 : " << oic.object_info.id << endl;
 		client.score += SQUID_SCORE;
 		client.SetSizeSpeed(SQUID_SCORE);
 
@@ -601,7 +609,6 @@ void progress_Collision_po(client& client, object_info_claculate& oic)
 	}
 	case JELLYFISH:
 	{
-		cout << "충돌 : " << client.id << "번 플레이어, 해파리" << endl;
 		client.score += JELLYFISH_SCORE;
 		client.SetSizeSpeed(JELLYFISH_SCORE);
 
