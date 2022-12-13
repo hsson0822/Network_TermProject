@@ -17,10 +17,10 @@
 #include <mmsystem.h>
 #include <algorithm>
 #include <unordered_map>
+#include <fstream>
 #include "resource.h"
 #include "Fish.h"
 #include "Food.h"
-#include <bitset>
 #include "../../Network_TermProject_Server/Network_TermProject_Server/protocol.h"
 
 using namespace std;
@@ -73,7 +73,7 @@ int eventNum;
 
 void SetFishRect(Fish& fish, const LONG x, const LONG y);
 
-char* SERVERIP = (char*)"127.0.0.1";
+const char* SERVERIP = nullptr;
 
 // 오류 검사용 함수
 void err_display(const char* msg)
@@ -84,7 +84,9 @@ void err_display(const char* msg)
 		NULL, WSAGetLastError(),
 		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
 		(char*)&lpMsgBuf, 0, NULL);
-	printf("[%s] %s\n", msg, (char*)lpMsgBuf);
+	TCHAR message[100];
+	wsprintf(message, L"[%s] %s\n", msg, (char*)lpMsgBuf);
+	MessageBox(hWnd, message, L"오류", MB_OK);
 	LocalFree(lpMsgBuf);
 }
 
@@ -203,7 +205,6 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 			{
 				SC_ERASE_OBJECT_PACKET* packet = reinterpret_cast<SC_ERASE_OBJECT_PACKET*>(buf);
 				int id = packet->index;
-				cout << packet->index << ", " << packet->object_type << endl;
 				
 				for (vector<Food*>::iterator iter = foods.begin(); iter != foods.end(); ++iter)
 				{
@@ -229,7 +230,6 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 			}
 			case SC_UPDATE_OBSTACLE:
 			{
-				//cout << "SC_UPDATE_OBSTACLE" << endl;
 				SC_UPDATE_OBJECT_PACKET* packet = reinterpret_cast<SC_UPDATE_OBJECT_PACKET*>(buf);
 
 				short x = packet->oi.pos.x;
@@ -316,7 +316,6 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 			case SC_LEAVE_PLAYER: {
 				SC_LEAVE_PLAYER_PACKET* packet = reinterpret_cast<SC_LEAVE_PLAYER_PACKET*>(buf);
 				int other_id = packet->id;
-				cout << other_id << " 플레이어 종료!" << endl;
 
 				players[other_id].SetIsActive(false);
 
@@ -333,7 +332,6 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 					id = packet->id;
 				}
 
-				cout << "자신의 아이디는 : " << id << endl;
 
 				CS_READY_PACKET packet;
 				packet.type = CS_PLAYER_READY;
@@ -431,7 +429,6 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 
 
 			case SC_GAME_OVER: {
-				cout << "게임 종료" << endl;
 
 				SC_GAME_OVER_PACKET* packet = reinterpret_cast<SC_GAME_OVER_PACKET*>(buf);
 				unordered_map<int, int> map;
@@ -525,6 +522,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
 	ShowWindow(hWnd, nCmdShow);
 	UpdateWindow(hWnd);
 
+	ifstream in;
+	in.open("ipaddress.txt");
+
+	std::string s;
+	if (!in.is_open()) {
+		TCHAR message[100];
+		wsprintf(message, L"ipaddress.txt 파일이 없습니다!");
+		MessageBox(hWnd, message, L"오류", MB_OK);
+		return 0;
+	}
+	
+	in >> s;
+	SERVERIP = s.c_str();
+
 
 	while (GetMessage(&Message, 0, 0, 0))
 	{
@@ -579,7 +590,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	static int foodExp;
 	static BOOL autoMode;
 
-
 	switch (uMsg)
 	{
 	case WM_CREATE:
@@ -630,7 +640,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 		foodExp = 25;
 
-		//PlaySound(L"Aquarium.wav", NULL, SND_ASYNC | SND_LOOP);
+
+		PlaySound(L"Aquarium.wav", NULL, SND_ASYNC | SND_LOOP);
 
 		SetTimer(hWnd, 1, 70, NULL);	// 기본
 

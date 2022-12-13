@@ -14,8 +14,8 @@ random_device rd;
 default_random_engine dre(rd());
 uniform_int_distribution<int> random_x(200, PLAYER_WIDTH);		// 플레이어 초기 위치 랜덤
 uniform_int_distribution<int> random_y(200, PLAYER_HEIGHT);
-uniform_int_distribution<int> random_spawn_x(0, WINDOWWIDTH);	// 오브젝트 랜덤 위치
-uniform_int_distribution<int> random_spawn_y(0, WINDOWHEIGHT);	
+uniform_int_distribution<int> random_spawn_x(100, WINDOWWIDTH - 100);	// 오브젝트 랜덤 위치
+uniform_int_distribution<int> random_spawn_y(100, WINDOWHEIGHT - 100);	
 uniform_int_distribution<int> random_spawn_y_hook(HOOK_HEIGHT, WINDOWHEIGHT - HOOK_HEIGHT);
 uniform_int_distribution<int> random_spawn_o_speed(7, 20);
 uniform_int_distribution<int> random_life(1, MAX_LIFE);			// 오브젝트 랜덤 체력
@@ -213,15 +213,9 @@ void makeFood()
 
 	foodCurrent = chrono::system_clock::now();
 	foodMs = chrono::duration_cast<chrono::milliseconds>(foodCurrent - foodStart).count();
-	// 생성 후 지난 시간이 1000ms 를 넘으면 생성
+	// 0.5초마다 생성
 	if (foodMs > FOOD_SPAWN_TIME)
 	{
-		//for (const auto& c : clients)
-		//{
-		//	if (c.id != -1)
-		//		cout << c.id << " 번 플레이어 좌표 x : " << c.GetX() << ", y : " << c.GetY() << endl;
-		//}
-
 		int foodKinds = random_object(dre) + 3;
 		short randX = random_spawn_x(dre);
 		short randY = random_spawn_y(dre);
@@ -292,12 +286,11 @@ void makeObstacle()
 {
 	obstacleCurrent = chrono::system_clock::now();
 	obstacleMs = chrono::duration_cast<chrono::milliseconds>(obstacleCurrent - obstacleStart).count();
-	// 생성 후 지난 시간이 7초를 넘으면 생성
+	// 7초마다 생성
 	if (obstacleMs > OBSTACLE_SPAWN_TIME)
 	{
 
 		int obstacleKinds = random_object(dre);
-		obstacleKinds = NET;
 		int obstacledir = random_dir(dre);
 		short randX{};
 		short randY{};
@@ -658,13 +651,12 @@ void progress_Collision_mo(object_info_claculate& oic)
 
 void collision()
 {	
-	short bias{};
 	for (client& cl_1 : clients)
 	{
 		if (cl_1.id != -1 && cl_1.is_caught == -1)
 		{
 			RECT tmp{};
-			RECT playerRect_1 = RECT{ cl_1.GetX() + bias, cl_1.GetY() + bias, cl_1.GetX() + cl_1.GetWidth() - bias, cl_1.GetY() + cl_1.GetHeight() - bias };
+			RECT playerRect_1 = RECT{ cl_1.GetX(), cl_1.GetY(), cl_1.GetX() + cl_1.GetWidth(), cl_1.GetY() + cl_1.GetHeight()};
 			for (object_info_claculate& oic : objects_calculate)
 			{
 				if (oic.is_active)
@@ -719,30 +711,12 @@ void MovePlayer()
 			client.SetX(x);
 			client.SetY(y);
 
+			// 맵 밖으로 벗어나면
+			if (x > WINDOWWIDTH || x + client.GetWidth() < 0 || y > WINDOWHEIGHT || y + client.GetHeight() < 0) {
+				client.ReSpawn();
+			}
+
 		}
-
-		//// 500ms 마다 위치 조정	-> 클라이언트에서 서버로 조정하는 방식으로 됨, 원래는 서버에서 클라이언트로 보정하는 것이 맞을것
-		//auto interpolation = std::chrono::duration_cast<std::chrono::milliseconds>(cur - client.last_interpolation).count();
-		//if (interpolation > INTERPOLATION_TIME) {
-		//	client.last_interpolation = cur;
-
-
-		//	short x = client.GetX();
-		//	short y = client.GetY();
-
-		//	SC_INTERPOLATION_PACKET packet;
-		//	packet.id = client.id;
-		//	packet.type = SC_INTERPOLATION;
-		//	packet.x = x;
-		//	packet.y = y;
-
-		//	for (auto& c : clients) {
-		//		if (-1 == c.id) continue;
-		//		c.send_packet(&packet, sizeof(packet));
-		//	}
-
-
-		//}
 	}
 
 }
