@@ -69,8 +69,7 @@ enum PacketType {
 	SC_UPDATE_OBSTACLE,
 	SC_UPDATE_PLAYER_WH,
 	CS_INTERPOLATION,
-	SC_INTERPOLATION,
-	SC_CAUGHT
+	SC_INTERPOLATION
 };
 
 // 오브젝트 type 구분
@@ -82,14 +81,6 @@ enum ObjectType {
 	SQUID,
 	JELLYFISH
 };
-
-//// 플레이어의 이동키 입력 구분
-//enum PlayerMove {
-//	MOVE_LEFT,
-//	MOVE_RIGHT,
-//	MOVE_UP,
-//	MOVE_DOWN
-//};
 
 enum FoodScore {
 	CRAB_SCORE = 1,
@@ -134,14 +125,6 @@ struct object_info_claculate {
 // 서버 -> 클라 패킷의 id 는 클라이언트 구분용 id
 
 #pragma pack(push, 1)
-struct SC_CREATE_FOOD_PACKET
-{
-	char type;
-	object_info object;
-	int id;
-	position pos;
-};
-
 struct SC_CHANGE_DIRECTION_PACKET {
 	char type;
 	unsigned char dir;
@@ -182,8 +165,6 @@ struct CS_READY_PACKET {
 
 struct SC_GAME_START_PACKET {
 	char type;
-	// 게임 시작 시 플레이어들의 정보를 넘길 필요가 있음
-	// -> 게임 초기화 작업
 	position pos[3];
 };
 
@@ -211,24 +192,6 @@ struct SC_UPDATE_PLAYER_PACKET {	// 플레이어 너비 높이 변경
 	int is_caught;
 };
 
-//// 아래는 먹이, 장애물 생성 제거 패킷
-//// 구현 방식에 따라 필요할 수도 있고 필요하지 않을 수도 있음
-// index 로 몇번째 object 가 추가/삭제 되었는지 파악
-
-struct SC_CREATE_OBJCET_PACKET {
-	char type;
-	int index;
-	object_info object;
-	unsigned char dir;
-	short col_x, col_y;
-};
-
-struct SC_ERASE_OBJECT_PACKET {
-	char type;
-	int index;
-	char object_type = -1;
-};
-
 struct SC_UPDATE_OBJECT_PACKET {
 	char type;
 	object_info oi;
@@ -254,9 +217,20 @@ struct SC_INTERPOLATION_PACKET {
 	short x, y;
 };
 
-struct SC_CAUGHT_PACKET {
+//// 아래는 먹이, 장애물 생성 제거 패킷
+// index 로 몇번째 object 가 추가/삭제 되었는지 파악
+
+struct SC_CREATE_OBJCET_PACKET {
 	char type;
-	int id;
-	short x, y;
+	int index;
+	object_info object;
+	unsigned char dir;
+	short col_x, col_y;
+};
+
+struct SC_ERASE_OBJECT_PACKET {
+	char type;
+	int index;
+	char object_type = -1;
 };
 #pragma pack(pop)

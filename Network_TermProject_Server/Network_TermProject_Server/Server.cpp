@@ -17,7 +17,9 @@ uniform_int_distribution<int> random_y(200, PLAYER_HEIGHT);
 uniform_int_distribution<int> random_spawn_x(100, WINDOWWIDTH - 100);	// 오브젝트 랜덤 위치
 uniform_int_distribution<int> random_spawn_y(100, WINDOWHEIGHT - 100);	
 uniform_int_distribution<int> random_spawn_y_hook(HOOK_HEIGHT, WINDOWHEIGHT - HOOK_HEIGHT);
-uniform_int_distribution<int> random_spawn_o_speed(7, 20);
+uniform_int_distribution<int> random_spawn_h_net(NET_HEIGHT, WINDOWHEIGHT / 2);
+uniform_int_distribution<int> random_spawn_y_net(0, WINDOWHEIGHT - NET_HEIGHT);
+uniform_int_distribution<int> random_spawn_o_speed(20, 35);
 uniform_int_distribution<int> random_life(1, MAX_LIFE);			// 오브젝트 랜덤 체력
 uniform_int_distribution<int> random_object(0, 2);			// 오브젝트 랜덤 타입
 uniform_int_distribution<int> random_dir(0, 1);
@@ -313,11 +315,9 @@ void makeObstacle()
 			else
 				randX = -NET_WIDTH;
 			col_x = NET_WIDTH;
-			uniform_int_distribution<int> random_spawn_h_net(NET_HEIGHT, WINDOWHEIGHT / 2);
 			col_y = random_spawn_h_net(dre);
 			packet.col_x = col_x;
 			packet.col_y = col_y;
-			uniform_int_distribution<int> random_spawn_y_net(0, WINDOWHEIGHT - col_y);
 			randY = random_spawn_y_net(dre);
 
 		}
@@ -342,8 +342,10 @@ void makeObstacle()
 			else
 				randX = -SHARK_WIDTH;
 			randY = random_spawn_y(dre);
-			packet.col_x = SHARK_WIDTH;
-			packet.col_y = SHARK_HEIGHT;
+			col_x = SHARK_WIDTH;
+			col_y = SHARK_HEIGHT;
+			packet.col_x = col_x;
+			packet.col_y = col_y;
 		}
 
 		obstacleStart = chrono::system_clock::now();
@@ -390,7 +392,7 @@ void updateObjects()
 {
 	updateCurrent = chrono::system_clock::now();
 	updateMs = chrono::duration_cast<chrono::milliseconds>(updateCurrent - updateStart).count();
-	if (updateMs > 17)
+	if (updateMs > 34)
 	{
 		for (object_info_claculate& oic : objects_calculate)
 		{
@@ -463,7 +465,7 @@ void updateObjects()
 					{
 						oic.object_info.pos.y += oic.y_hook / 30;
 					}
-					else if (oic.i_hook < 60)
+					else if (oic.i_hook < 25)
 					{
 						oic.i_hook++;
 					}
@@ -472,7 +474,7 @@ void updateObjects()
 						oic.object_info.pos.y -= oic.y_hook / 30;
 					}
 
-					if (oic.i_hook >= 60 && oic.object_info.pos.y <= -HOOK_HEIGHT)
+					if (oic.i_hook >= 25 && oic.object_info.pos.y <= -HOOK_HEIGHT)
 					{
 						oic.is_active = false;
 						for (client& client : clients)
@@ -517,14 +519,14 @@ void updateObjects()
 							}
 							case HOOK:
 							{
-								cl.SetY(oic.object_info.pos.y);
+								cl.SetY(oic.object_info.pos.y + (HOOK_HEIGHT / 2));
 								break;
 							}
 							}
 
-							SC_CAUGHT_PACKET packet;
+							SC_INTERPOLATION_PACKET packet;
 							packet.id = cl.id;
-							packet.type = SC_CAUGHT;
+							packet.type = SC_INTERPOLATION;
 							packet.x = cl.GetX();
 							packet.y = cl.GetY();
 
@@ -534,7 +536,6 @@ void updateObjects()
 									continue;
 								client.send_packet(&packet, sizeof(packet));
 							}
-							//cl.SetY(oic.object_info.pos.y);
 						}
 
 						cl.send_update_object(oic);

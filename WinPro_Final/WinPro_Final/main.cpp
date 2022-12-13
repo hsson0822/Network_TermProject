@@ -395,23 +395,6 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				break;
 			}
 
-			case SC_CAUGHT: {
-				SC_CAUGHT_PACKET* packet = reinterpret_cast<SC_CAUGHT_PACKET*>(buf);
-
-				int other_id = packet->id;
-				if (other_id == id) {
-					fish.Move(packet->x, packet->y);
-				}
-				else {
-					players[other_id].Move(packet->x, packet->y);
-				}
-
-
-				overload_packet_process(buf, sizeof(SC_CAUGHT_PACKET), remain_packet);
-				break;
-			}
-
-
 			case SC_GAME_OVER: {
 
 				SC_GAME_OVER_PACKET* packet = reinterpret_cast<SC_GAME_OVER_PACKET*>(buf);
@@ -455,9 +438,12 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				isReady = false;
 
 				fish.Move(rect.right / 2 - 300, rect.bottom / 2);
+				fish.setMoveDir(0);
 
-				for (int i = 0; i < MAX_USER; ++i)
+				for (int i = 0; i < MAX_USER; ++i) {
 					players[i].SetIsActive(false);
+					players[i].setMoveDir(0);
+				}
 
 				playButtonRect = { rect.right / 2 - 100 , rect.bottom / 2 + 200 , rect.right / 2 + 100, rect.bottom / 2 + 300 };
 
