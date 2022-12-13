@@ -543,11 +543,12 @@ void updateObjects()
 					}
 				}
 
-				updateStart = chrono::system_clock::now();
 			}
 		}
-		
+		updateStart = chrono::system_clock::now();
 	}
+
+
 }
 
 void progress_Collision_po(client& client, object_info_claculate& oic)
