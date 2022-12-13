@@ -187,13 +187,6 @@ struct SC_GAME_START_PACKET {
 	position pos[3];
 };
 
-struct SC_COLLISION_PACKET {
-	unsigned char size;
-	char type;
-	int id;
-	int* scores;
-};
-
 struct SC_GAME_OVER_PACKET {
 	char type;
 	int scores[3];
@@ -203,11 +196,6 @@ struct SC_OBJECT_PACKET {
 	char type;
 	unsigned char num;		// 몇개의 오브젝트 변화가 전달될건지
 	object_info* objects;
-};
-
-struct SC_ACCEPT_PACKET {		// 접속한 클라이언트 본인이 받을 패킷, 이 구조체의 id가 클라이언트 본인의 id가 됨
-	char type;
-	int id;
 };
 
 struct SC_ADD_PLAYER_PACKET {	// 기존에 접속해있던 다른 클라이언트들이 받을 패킷

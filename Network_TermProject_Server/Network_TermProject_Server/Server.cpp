@@ -364,8 +364,8 @@ void makeObstacle()
 				oic.object_info.type = packet.object.type;
 				oic.object_info.pos.x = packet.object.pos.x;
 				oic.object_info.pos.y = packet.object.pos.y;
-				oic.width = col_x;
-				oic.height = col_y;
+				oic.width = packet.col_x;
+				oic.height = packet.col_y;
 				oic.life = obstacleHP;
 				oic.dir = packet.dir;
 				oic.y_hook = y_hook;
