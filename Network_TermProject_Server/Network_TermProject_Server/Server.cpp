@@ -328,10 +328,8 @@ void makeObstacle()
 
 			randX = random_spawn_x(dre);
 			randY = -HOOK_HEIGHT;
-			col_x = HOOK_WIDTH;
-			col_y = HOOK_HEIGHT;
-			packet.col_x = col_x;
-			packet.col_y = col_y;
+			packet.col_x = HOOK_WIDTH;
+			packet.col_y = HOOK_HEIGHT;
 			y_hook = random_spawn_y_hook(dre);
 		}
 		else
@@ -498,7 +496,7 @@ void updateObjects()
 					break;
 				}
 				}
-				updateStart = chrono::system_clock::now();
+
 
 				// switch문 처리 후에도 장애물이 아직 살아있으면 잡힌 상태의 플레이어를 장애물에 구속
 				if (oic.is_active && oic.object_info.type <= SHARK) // NET, HOOK, SHARK
@@ -544,6 +542,8 @@ void updateObjects()
 						
 					}
 				}
+
+				updateStart = chrono::system_clock::now();
 			}
 		}
 		
