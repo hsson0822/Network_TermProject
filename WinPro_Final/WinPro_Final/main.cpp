@@ -399,6 +399,7 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 
 				SC_GAME_OVER_PACKET* packet = reinterpret_cast<SC_GAME_OVER_PACKET*>(buf);
 				unordered_map<int, int> map;
+				int my_score = fish.GetScore();
 
 				// 게임 종료시 점수를 마지막으로 받음
 				for (int i = 0; i < MAX_USER; ++i) {
@@ -424,8 +425,22 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				retval = send(sock, send_buf, sizeof(send_packet), 0);
 				if (retval == SOCKET_ERROR) err_display("disconnect game()");
 
+
+				eventNum = -1;
+
+				start_x = -300;
+				fish.Init();
+
+				for (int i = 0; i < MAX_USER; ++i) {
+					players[i].SetIsActive(false);
+					players[i].Init();
+					players[i].Move(-200, -200);
+				}
+
+
 				TCHAR message[100];
-				wsprintf(message, L"%d번 플레이어 : %d점\n%d번 플레이어 : %d점\n%d번 플레이어 : %d점", v[0].first, v[0].second, v[1].first, v[1].second, v[2].first, v[2].second);
+				wsprintf(message, L"나의 점수 : %d점\n\n%d번 플레이어 : %d점\n%d번 플레이어 : %d점\n%d번 플레이어 : %d점",
+					my_score, v[0].first, v[0].second, v[1].first, v[1].second, v[2].first, v[2].second);
 				MessageBox(hWnd, message, L"게임 종료", MB_OK);
 
 				foods.clear();
@@ -437,17 +452,11 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				isGameStart = false;
 				isReady = false;
 
-				fish.Move(rect.right / 2 - 300, rect.bottom / 2);
-				fish.setMoveDir(0);
+				
 
-				for (int i = 0; i < MAX_USER; ++i) {
-					players[i].SetIsActive(false);
-					players[i].setMoveDir(0);
-				}
 
 				playButtonRect = { rect.right / 2 - 100 , rect.bottom / 2 + 200 , rect.right / 2 + 100, rect.bottom / 2 + 300 };
 
-				start_x = -100;
 
 				overload_packet_process(buf, sizeof(SC_GAME_OVER_PACKET), remain_packet);
 				break;

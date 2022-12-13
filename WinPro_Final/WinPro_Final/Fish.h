@@ -28,6 +28,8 @@ public:
 	Fish();
 	Fish(int posX, int posY);
 
+	void Init();
+
 	RECT getRect();
 	void setRect(RECT r);
 

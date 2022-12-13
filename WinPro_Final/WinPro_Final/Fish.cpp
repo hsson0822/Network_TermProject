@@ -37,6 +37,21 @@ void Fish::addMoveCount() { ++moveCount; }
 void Fish::resetMoveCount() { moveCount = 0; }
 
 unsigned char Fish::getMoveDir() { return moveDir;}
+
+void Fish::Init()
+{
+	Move(WINDOWWIDTH / 2 - 300, WINDOWHEIGHT / 2);
+	is_caught = -1;
+	setMoveDir(0);
+	SetScore(0);
+	last_move = std::chrono::system_clock::now();
+	last_interpolation = last_move;
+	speed = FISH_INIT_SPEED;
+	width = FISH_INIT_WIDTH;
+	height = FISH_INIT_HEIGHT;
+
+}
+
 void Fish::setMoveDir(unsigned char dir) 
 { 
 	if ((dir & MOVE_LEFT) == MOVE_LEFT) {
