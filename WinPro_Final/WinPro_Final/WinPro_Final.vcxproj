@@ -158,34 +158,19 @@
     <ResourceCompile Include="Resource.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="age.bmp" />
-    <Image Include="angry124.159.bmp" />
     <Image Include="arrow816.1083.bmp" />
     <Image Include="back1.bmp" />
-    <Image Include="back2.bmp" />
-    <Image Include="back3.bmp" />
-    <Image Include="back4.bmp" />
     <Image Include="crab85.61.bmp" />
     <Image Include="cry124,159.bmp" />
-    <Image Include="exp.bmp" />
-    <Image Include="floor1080.84.bmp" />
-    <Image Include="footButton836.834.bmp" />
-    <Image Include="happy124,159.bmp" />
     <Image Include="hook536.1500.bmp" />
     <Image Include="jelly27.30.bmp" />
-    <Image Include="JellyFish.bmp" />
     <Image Include="loading260.bmp" />
     <Image Include="net1364.2438.bmp" />
     <Image Include="net1364.2580.bmp" />
     <Image Include="normal124,159.bmp" />
-    <Image Include="obs.bmp" />
-    <Image Include="playbutton.bmp" />
     <Image Include="shark97.64.bmp" />
     <Image Include="squid47.72.bmp" />
-    <Image Include="sta.bmp" />
-    <Image Include="starfish37.51.bmp" />
     <Image Include="start_btn1271.401.bmp" />
-    <Image Include="start_btn985.269.bmp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

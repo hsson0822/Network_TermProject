@@ -1,15 +1,10 @@
 #include "Fish.h"
 #include "../../Network_TermProject_Server/Network_TermProject_Server/protocol.h"
 
-#include <iostream>
-
 Fish::Fish()
 {
 	width = FISH_INIT_WIDTH;
 	height = FISH_INIT_HEIGHT;
-	age = 0;
-	exp = 0;
-	maxExp = 20;
 	rect = { 0,0,0 + width, 0 + height };
 	moveDir = 0;
 	x = 0;
@@ -30,21 +25,6 @@ Fish::Fish(int posX, int posY) : Fish()
 
 RECT Fish::getRect() { return rect; }
 void Fish::setRect(RECT r) { rect = r; }
-
-
-int Fish::getAge() { return age; }
-void Fish::addAge()
-{
-	width += 30;
-	height += 30;
-	rect.right += 30;
-	rect.bottom += 30;
-}
-
-
-int Fish::getExp() { return exp; }
-void Fish::setExp(int e) { exp = e; }
-int Fish::getMaxExp() { return maxExp; }
 
 int Fish::getWidth() { return width; }
 void Fish::setWidth(int w) { width = w; }
@@ -92,11 +72,6 @@ void Fish::setUD(bool ud) { goUD = ud; }
 
 void Fish::Move(short posX, short posY)
 {
-	/*if (posX > x)
-		goLR = true;
-	else if(posX < x)
-		goLR = false;*/
-
 	x = posX;
 	y = posY;
 	setRect(RECT{ x, y, x + width, y + height });

@@ -8,9 +8,6 @@ class Fish
 	RECT rect;
 	short x, y;
 	int width, height;
-	int age;
-	int exp;
-	int maxExp;
 	int state;
 	int moveCount;
 	unsigned char moveDir;
@@ -33,14 +30,6 @@ public:
 
 	RECT getRect();
 	void setRect(RECT r);
-
-	int getAge();
-	void addAge();
-
-	int getExp();
-	void setExp(int e);
-
-	int getMaxExp();
 
 	int getWidth();
 	void setWidth(int w);

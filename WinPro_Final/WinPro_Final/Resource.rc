@@ -50,19 +50,9 @@ END
 // Bitmap
 //
 
-IDB_ANGRY               BITMAP                  "angry124.159.bmp"
-
 IDB_BACK1               BITMAP                  "back1.bmp"
 
-IDB_BACK2               BITMAP                  "back2.bmp"
-
-IDB_BACK3               BITMAP                  "back3.bmp"
-
-IDB_BACK4               BITMAP                  "back4.bmp"
-
 IDB_CRY                 BITMAP                  "cry124,159.bmp"
-
-IDB_HAPPY               BITMAP                  "happy124,159.bmp"
 
 IDB_NORMAL              BITMAP                  "normal124,159.bmp"
 
@@ -77,22 +67,6 @@ IDB_HOOK                BITMAP                  "hook536.1500.bmp"
 IDB_NET                 BITMAP                  "net1364.2438.bmp"
 
 IDB_SHARK               BITMAP                  "shark97.64.bmp"
-
-IDB_EXP                 BITMAP                  "exp.bmp"
-
-IDB_STAT                BITMAP                  "sta.bmp"
-
-IDB_OBS                 BITMAP                  "obs.bmp"
-
-IDB_AGE                 BITMAP                  "age.bmp"
-
-IDB_FOOD                BITMAP                  "footButton836.834.bmp"
-
-IDB_FLOOR               BITMAP                  "floor1080.84.bmp"
-
-IDB_STARFISH            BITMAP                  "starfish37.51.bmp"
-
-IDB_OBS2                BITMAP                  "JellyFish.bmp"
 
 IDB_PLAY                BITMAP                  "start_btn1271.401.bmp"
 

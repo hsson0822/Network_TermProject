@@ -45,25 +45,10 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="angry124.159.bmp">
-      <Filter>리소스 파일</Filter>
-    </Image>
     <Image Include="back1.bmp">
       <Filter>리소스 파일</Filter>
     </Image>
-    <Image Include="back2.bmp">
-      <Filter>리소스 파일</Filter>
-    </Image>
-    <Image Include="back3.bmp">
-      <Filter>리소스 파일</Filter>
-    </Image>
-    <Image Include="back4.bmp">
-      <Filter>리소스 파일</Filter>
-    </Image>
     <Image Include="cry124,159.bmp">
-      <Filter>리소스 파일</Filter>
-    </Image>
-    <Image Include="happy124,159.bmp">
       <Filter>리소스 파일</Filter>
     </Image>
     <Image Include="normal124,159.bmp">
@@ -88,36 +73,6 @@
       <Filter>리소스 파일</Filter>
     </Image>
     <Image Include="shark97.64.bmp">
-      <Filter>리소스 파일</Filter>
-    </Image>
-    <Image Include="exp.bmp">
-      <Filter>리소스 파일</Filter>
-    </Image>
-    <Image Include="sta.bmp">
-      <Filter>리소스 파일</Filter>
-    </Image>
-    <Image Include="obs.bmp">
-      <Filter>리소스 파일</Filter>
-    </Image>
-    <Image Include="age.bmp">
-      <Filter>리소스 파일</Filter>
-    </Image>
-    <Image Include="footButton836.834.bmp">
-      <Filter>리소스 파일</Filter>
-    </Image>
-    <Image Include="floor1080.84.bmp">
-      <Filter>리소스 파일</Filter>
-    </Image>
-    <Image Include="starfish37.51.bmp">
-      <Filter>리소스 파일</Filter>
-    </Image>
-    <Image Include="playbutton.bmp">
-      <Filter>리소스 파일</Filter>
-    </Image>
-    <Image Include="JellyFish.bmp">
-      <Filter>리소스 파일</Filter>
-    </Image>
-    <Image Include="start_btn985.269.bmp">
       <Filter>리소스 파일</Filter>
     </Image>
     <Image Include="start_btn1271.401.bmp">

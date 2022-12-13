@@ -107,6 +107,7 @@ int id_oic = -1;
 int id = 0;
 CRITICAL_SECTION id_cs;
 CRITICAL_SECTION cs;
+HANDLE hEndEvent;
 bool is_game_start = false;
 
 // 오류 검사용 함수
@@ -767,6 +768,8 @@ DWORD WINAPI CalculateThread(LPVOID arg)
 	for (auto& oic : objects_calculate)
 		oic.is_active = false;
 	
+	is_game_start = false;
+	SetEvent(hEndEvent);
 
 	return 0;
 }
@@ -798,9 +801,6 @@ DWORD WINAPI RecvThread(LPVOID arg)
 	SOCKET client_socket = c_info->sock;
 
 	int this_id = c_info->client_id;
-
-	if (id == MAX_USER)
-		is_game_start = true;
 
 	int len{};
 	char buf[BUF_SIZE];
@@ -991,6 +991,8 @@ int main(int argc, char* argv[])
 	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
 		return 1;
 
+	hEndEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+
 	SOCKET listen_sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (INVALID_SOCKET == listen_sock) {
 		err_display("socket()");
@@ -1026,9 +1028,8 @@ int main(int argc, char* argv[])
 	InitializeCriticalSection(&cs);
 
 	while (true) {
-
-		// 3명을 받으면 accept 를 종료하고 다른일을 하도록 추가할 예정
-		// 3명이 게임 시작을 눌렀는지 검사하는 과정이 필요함
+		if (is_game_start)
+			WaitForSingleObject(hEndEvent, INFINITE);
 
 		addrlen = sizeof(addr);
 		client_socket = accept(listen_sock, reinterpret_cast<sockaddr*>(&addr), &addrlen);
@@ -1051,12 +1052,14 @@ int main(int argc, char* argv[])
 			closesocket(client_socket);
 		else
 			CloseHandle(hThread);
+
+		if (id == MAX_USER)
+			is_game_start = true;
 	}
 
 
 	DeleteCriticalSection(&id_cs);
 	DeleteCriticalSection(&cs);
-
 
 	closesocket(listen_sock);
 	WSACleanup();

@@ -3,11 +3,6 @@
 #pragma comment (lib, "winmm.lib")
 #pragma comment(lib,"ws2_32")
 
-// 콘솔 띄우기 명령줄, 코드 작성 완료시 삭제해야 함
-#pragma comment(linker, "/entry:WinMainCRTStartup /subsystem:console")
-#include <iostream>
-// -----------------------------------------
-
 #include <winsock2.h>
 #include <WS2tcpip.h>
 #include <windows.h>
@@ -30,9 +25,6 @@ LPCTSTR lpszClass = L"Window Class Name";
 LPCTSTR lpszWindowName = L"Growing Fish";
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam);
-int GetExpPer(Fish& fish);
-int CheckAge(int);
-
 RECT rect;
 
 HWND hWnd;
@@ -67,12 +59,6 @@ int sharkY;
 
 int eventNum;
 
-
-// players 는 다른 플레이어
-// 현재는 Fish class를 사용하지만 불필요한 멤버 함수, 변수를 제외한 클래스로 배열을 만들어야 함
-
-void SetFishRect(Fish& fish, const LONG x, const LONG y);
-
 const char* SERVERIP = nullptr;
 
 // 오류 검사용 함수
@@ -84,9 +70,7 @@ void err_display(const char* msg)
 		NULL, WSAGetLastError(),
 		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
 		(char*)&lpMsgBuf, 0, NULL);
-	TCHAR message[100];
-	wsprintf(message, L"[%s] %s\n", msg, (char*)lpMsgBuf);
-	MessageBox(hWnd, message, L"오류", MB_OK);
+	printf("[%s] %s\n", msg, (char*)lpMsgBuf);
 	LocalFree(lpMsgBuf);
 }
 
@@ -205,7 +189,7 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 			{
 				SC_ERASE_OBJECT_PACKET* packet = reinterpret_cast<SC_ERASE_OBJECT_PACKET*>(buf);
 				int id = packet->index;
-				
+
 				for (vector<Food*>::iterator iter = foods.begin(); iter != foods.end(); ++iter)
 				{
 					if ((*iter)->getId() == packet->index)
@@ -284,7 +268,7 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 					fish.SetScore(packet->score);
 					if (-1 != fish.is_caught)
 						fish.setMoveDir(0);
-				
+
 				}
 				else {
 					players[packet->id].setWH(packet->w, packet->h);
@@ -305,7 +289,7 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				SC_ADD_PLAYER_PACKET* packet = reinterpret_cast<SC_ADD_PLAYER_PACKET*>(buf);
 				int other_id = packet->id;
 
-				SetFishRect(players[other_id], rect.right / 2 + start_x, rect.bottom / 2);
+				players[other_id].Move(rect.right / 2 + start_x, rect.bottom / 2);
 				start_x += 200;
 				players[other_id].SetIsActive(true);
 
@@ -399,7 +383,7 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 			case SC_INTERPOLATION: {
 				SC_INTERPOLATION_PACKET* packet = reinterpret_cast<SC_INTERPOLATION_PACKET*>(buf);
 				int other_id = packet->id;
-				
+
 				if (other_id == id) {
 					fish.Move(packet->x, packet->y);
 				}
@@ -458,7 +442,7 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				if (retval == SOCKET_ERROR) err_display("disconnect game()");
 
 				TCHAR message[100];
-				wsprintf(message, L"%d번 플레이어 : %d점\n%d번 플레이어 : %d점\n%d번 플레이어 : %d점",v[0].first, v[0].second, v[1].first, v[1].second, v[2].first, v[2].second);
+				wsprintf(message, L"%d번 플레이어 : %d점\n%d번 플레이어 : %d점\n%d번 플레이어 : %d점", v[0].first, v[0].second, v[1].first, v[1].second, v[2].first, v[2].second);
 				MessageBox(hWnd, message, L"게임 종료", MB_OK);
 
 				foods.clear();
@@ -470,7 +454,7 @@ DWORD WINAPI NetworkThread(LPVOID arg)
 				isGameStart = false;
 				isReady = false;
 
-				SetFishRect(fish, rect.right / 2 - 300, rect.bottom / 2);
+				fish.Move(rect.right / 2 - 300, rect.bottom / 2);
 
 				for (int i = 0; i < MAX_USER; ++i)
 					players[i].SetIsActive(false);
@@ -532,7 +516,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
 		MessageBox(hWnd, message, L"오류", MB_OK);
 		return 0;
 	}
-	
+
 	in >> s;
 	SERVERIP = s.c_str();
 
@@ -555,12 +539,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	HBITMAP oldBit1, oldBit2;
 	static HBITMAP hBitmap;
 	static HBITMAP back1;
-	static HBITMAP normalImage, angryImage, cryImage, happyImage;
-	static HBITMAP foodButtonImage;
+	static HBITMAP normalImage, cryImage;
 	static HBITMAP jelly, crab, squid;
 	static HBITMAP net, hook, shark;
 
-	static HBITMAP obs1, obs2;
 	static HBRUSH hBrush, oldBrush;
 
 	static int selectBack;
@@ -568,27 +550,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	static HBITMAP arrow;
 
 	static int foodKinds;
-	static int foodCount;
-	static int foodMax;
-	static RECT foodButton;
 	static int randX, randY;
 	static POINT mousePoint;
 
 	static int eventClick;
-	static BOOL eventOut;
-
-
 
 	static HBITMAP playButton;
-
 
 	static HBITMAP loading;
 	static RECT loadingRect;
 	static int loadingCount;
-
-	static int angryCount;
-	static int foodExp;
-	static BOOL autoMode;
 
 	switch (uMsg)
 	{
@@ -598,35 +569,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 		back1 = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_BACK1));
 		normalImage = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_NORMAL));
-		angryImage = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_ANGRY));
 		cryImage = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_CRY));
-		happyImage = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_HAPPY));
 		jelly = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_JELLY));
 		crab = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_CRAB));
 		squid = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_SQUID));
 		net = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_NET));
 		hook = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_HOOK));
 		shark = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_SHARK));
-		foodButtonImage = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_FOOD));
 		arrow = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_ARROW));
-
-		obs1 = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_OBS));
-		obs2 = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_OBS2));
 
 		playButton = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_PLAY));
 		loading = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_LOADING));
 
-		angryCount = 0;
-		autoMode = FALSE;
-
 		selectBack = 1;
 
-		SetFishRect(fish, rect.right / 2 + start_x, rect.bottom / 2);
+		fish.Move(rect.right / 2 + start_x, rect.bottom / 2);
 		start_x += 200;
 		fish.SetIsActive(true);
-		foodButton = { rect.right - 100,rect.bottom - 100,rect.right,rect.bottom };
-		foodCount = 0;
-		foodMax = 20;
 
 		playButtonRect = { rect.right / 2 - 100 , rect.bottom / 2 + 200 , rect.right / 2 + 100, rect.bottom / 2 + 300 };
 
@@ -634,12 +593,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		loadingCount = 0;
 
 		eventNum = 5;
-		eventOut = false;
-
-		//sharkWave = 0;
-
-		foodExp = 25;
-
 
 		PlaySound(L"Aquarium.wav", NULL, SND_ASYNC | SND_LOOP);
 
@@ -739,10 +692,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 			retval = send(sock, send_buf, sizeof(packet), 0);
 			if (retval == SOCKET_ERROR) err_display("move key down send()");
-			
+
 
 			// 이동방향이 0 = 모든 이동키를 뗌
-			if(direction == 0){
+			if (direction == 0) {
 				CS_INTERPOLATION_PACKET packet;
 				packet.type = CS_INTERPOLATION;
 				packet.x = fish.GetX();
@@ -757,9 +710,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				if (retval == SOCKET_ERROR) err_display("move key up send()");
 			}
 
-			
+
 		}
-		
+
 		break;
 	}
 
@@ -812,58 +765,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			retval = send(sock, send_buf, sizeof(packet), 0);
 			if (retval == SOCKET_ERROR) err_display("move key down send()");
 		}
-		/*if (PtInRect(&netRect, mousePoint))
-		{
-			if (eventClick > 5)
-				break;
-
-			++eventClick;
-			if (eventClick == 5)
-			{
-				if (netDir == 0)
-				{
-					netDir = 1;
-				}
-				else
-				{
-					netDir = 0;
-				}
-				eventOut = true;
-			}
-		}
-
-		if (PtInRect(&hookRect, mousePoint))
-		{
-			if (eventClick > 5)
-				break;
-
-			++eventClick;
-			if (eventClick == 5)
-			{
-				hookCount = 201;
-				eventOut = true;
-			}
-		}
-
-		if (PtInRect(&sharkRect, mousePoint))
-		{
-			if (eventClick > 5)
-				break;
-
-			++eventClick;
-			if (eventClick == 5)
-			{
-				if (sharkDir == 0)
-				{
-					sharkDir = 1;
-				}
-				else
-				{
-					sharkDir = 0;
-				}
-				eventOut = true;
-			}
-		}*/
 
 		break;
 
@@ -885,19 +786,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			oldBit2 = (HBITMAP)SelectObject(memDC2, back1);
 			StretchBlt(memDC1, 0, 0, rect.right, rect.bottom, memDC2, 0, 0, 256, 192, SRCCOPY);
 
-			/*oldBit2 = (HBITMAP)SelectObject(memDC2, arrow);
-			TransparentBlt(memDC1, fish.getRect().left + fish.getWidth() / 3, fish.getRect().top - 30, 30, 50, memDC2, 0, 0, 816, 1083, RGB(255, 255, 255));*/
-
-
-			if(-1 == fish.is_caught)
+			if (-1 == fish.is_caught)
 				fish.Draw(memDC1, memDC2, normalImage, arrow);
 			else
 				fish.Draw(memDC1, memDC2, cryImage, arrow);
 
 			for (auto& player : players) {
-				if (-1 == player.is_caught) 
+				if (-1 == player.is_caught)
 					player.Draw(memDC1, memDC2, normalImage, nullptr);
-				else 
+				else
 					player.Draw(memDC1, memDC2, cryImage, nullptr);
 			}
 
@@ -970,20 +867,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				break;
 			}
 
-			/*if (fish.is_caught)
-			{
-				if (fish.getRect().right < rect.left || fish.getRect().bottom < rect.top || fish.getRect().left > rect.right || fish.getRect().top > rect.bottom)
-				{
-					KillTimer(hWnd, 1);
-					KillTimer(hWnd, 2);
-					KillTimer(hWnd, 3);
-					KillTimer(hWnd, 4);
-					KillTimer(hWnd, 5);
-					MessageBox(hWnd, L"개복치가 잡혀갔습니다. ㅠㅜ", L"Game Over", MB_OK);
-					PlaySound(NULL, NULL, NULL);
-					PostQuitMessage(0);
-				}
-			}*/
 
 			if (!isReady && !isGameStart)
 			{
@@ -1009,12 +892,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			break;
 		}
 
-			//물고기 이동 및 먹이 섭취
+			  //물고기 이동 및 먹이 섭취
 		case 3:
 			// 다른 플레이어는 살아있을 때만 이동 처리
 			for (auto& p : players)
 				if (p.GetIsActive())
-					if(p.is_caught == -1)
+					if (p.is_caught == -1)
 						p.AnimateBySpeed();
 
 			if (fish.is_caught == -1) {
@@ -1041,192 +924,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					if (retval == SOCKET_ERROR) err_display("move key up send()");
 				}
 			}
-			else
-			{
-				/*if (eventNum == 0)
-				{
-					if (netDir == 0)
-					{
-						fish.setRect(RECT{ fish.getRect().left + 10,fish.getRect().top, fish.getRect().right + 10, fish.getRect().bottom });
-					}
-					else
-					{
-						fish.setRect(RECT{ fish.getRect().left - 10,fish.getRect().top, fish.getRect().right - 10, fish.getRect().bottom });
-					}
-				}
-				else if (eventNum == 1)
-				{
-					fish.setRect(RECT{ fish.getRect().left,fish.getRect().top - 5, fish.getRect().right, fish.getRect().bottom - 5 });
-				}
-				else if (eventNum == 2)
-				{
-					if (sharkDir == 0)
-						fish.setRect(RECT{ fish.getRect().left + 7,fish.getRect().top, fish.getRect().right + 7, fish.getRect().bottom });
-					else
-						fish.setRect(RECT{ fish.getRect().left - 7,fish.getRect().top, fish.getRect().right - 7, fish.getRect().bottom });
-				}
-			}*/
-
-				if (!fish.is_caught)
-				{
-					/*for (vector<Food*>::iterator iter = foods.begin(); iter != foods.end(); ++iter)
-					{
-						RECT temp;
-						RECT fishRect = RECT{ fish.getRect().left, fish.getRect().top + (fish.getHeight() / 10 * 2), fish.getRect().right, fish.getRect().bottom - (fish.getHeight() / 10 * 2) };
-						RECT foodRect = RECT{ (*iter)->getX(),(*iter)->getY(),(*iter)->getX() + (*iter)->getWidth(),(*iter)->getY() + (*iter)->getHeight() };
-						if (IntersectRect(&temp, &fishRect, &foodRect))
-						{
-							iter = foods.erase(iter);
-							--foodCount;
-							fish.setExp(fish.getExp() + foodExp);
-
-							if (fish.getExp() > fish.getMaxExp())
-								fish.addAge();
-						}
-
-						if (iter == foods.end())
-							break;
-					}*/
-
-					// 클리어
-					/*if (fish.getAge() >= 30) {
-						KillTimer(hWnd, 1);
-						KillTimer(hWnd, 2);
-						KillTimer(hWnd, 3);
-						KillTimer(hWnd, 4);
-						KillTimer(hWnd, 5);
-						MessageBox(hWnd, L"개복치가 성장이 완료되었습니다!", L"Congratulations", MB_OK);
-						PlaySound(NULL, NULL, NULL);
-						PostQuitMessage(0);
-					}*/
-				}
-
-				break;
-
-				// 이벤트 생성
-		case 4:
-			//eventNum = rand() % 3;
-			//eventClick = 0;
-			//eventOut = false;
-			//// 화난 얼굴
-			//angryCount = 0;
-			break;
-
-			// 이벤트 재생
-		case 5:
-			switch (eventNum)
-			{
-				/*
-					//그물
-				case 0:
-					if (netDir == 0)
-					{
-						//netRect = { netRect.left + 10, netRect.top, netRect.right + 10,netRect.bottom };
-						netRect = { netRect.left, netRect.top, netRect.right,netRect.bottom };
-					}
-					else
-					{
-						//netRect = { netRect.left - 10, netRect.top, netRect.right - 10,netRect.bottom };
-						netRect = { netRect.left, netRect.top, netRect.right,netRect.bottom };
-					}
-
-					if (!fish.is_caught && !eventOut)
-					{
-						RECT temp;
-						RECT fishRect = RECT{ fish.getRect().left, fish.getRect().top + (fish.getHeight() / 10 * 2), fish.getRect().right, fish.getRect().bottom - (fish.getHeight() / 10 * 2) };
-						if (IntersectRect(&temp, &netRect, &fishRect))
-						{
-							fish.is_caught = true;
-						}
-					}
-					break;
-
-					//낚시 바늘
-				case 1:
-					if (hookCount < 60)
-					{
-						hookRect = { hookRect.left,hookRect.top + 5 ,hookRect.right, hookRect.bottom + 5 };
-					}
-					else if (hookCount >= 60)
-					{
-						hookRect = { hookRect.left,hookRect.top - 5 ,hookRect.right,hookRect.bottom - 5 };
-					}
-					++hookCount;
-
-					if (!fish.is_caught && !eventOut)
-					{
-						RECT temp;
-						RECT fishRect = RECT{ fish.getRect().left, fish.getRect().top + (fish.getHeight() / 10 * 2), fish.getRect().right, fish.getRect().bottom - (fish.getHeight() / 10 * 2) };
-						RECT hookR = RECT{ hookRect.left,hookRect.top + 240,hookRect.right - 40,hookRect.bottom };
-						if (IntersectRect(&temp, &hookR, &fishRect))
-						{
-							fish.is_caught = true;
-							hookCount = 201;
-						}
-					}
-					break;
-
-					//상어
-				case 2:
-					if (sharkDir == 0)
-					{
-						sharkRect = { sharkRect.left + 7, sharkRect.top, sharkRect.right + 7,sharkRect.bottom };
-					}
-					else
-					{
-						sharkRect = { sharkRect.left - 7, sharkRect.top, sharkRect.right - 7,sharkRect.bottom };
-					}
-
-					++sharkWave;
-					if (sharkWave < 12)
-					{
-						sharkRect = { sharkRect.left, sharkRect.top + 2, sharkRect.right,sharkRect.bottom + 2 };
-						if (fish.is_caught)
-							fish.setRect(RECT{ fish.getRect().left,fish.getRect().top + 2, fish.getRect().right, fish.getRect().bottom + 2 });
-					}
-					else if (sharkWave < 24)
-					{
-						sharkRect = { sharkRect.left, sharkRect.top - 2, sharkRect.right,sharkRect.bottom - 2 };
-						if (fish.is_caught)
-							fish.setRect(RECT{ fish.getRect().left,fish.getRect().top - 2, fish.getRect().right, fish.getRect().bottom - 2 });
-					}
-					else
-						sharkWave = 0;*/
-
-				/*if (!fish.is_caught && !eventOut)
-				{
-					RECT temp;
-					RECT fishRect = RECT{ fish.getRect().left, fish.getRect().top + (fish.getHeight() / 10 * 2), fish.getRect().right, fish.getRect().bottom - (fish.getHeight() / 10 * 2) };
-					if (IntersectRect(&temp, &sharkRect, &fishRect))
-					{
-						fish.is_caught = true;
-					}
-				}
-				break;*/
-			}
-			break;
-
-			}
-		}
-		break;
-
-	case WM_COMMAND:
-		switch (LOWORD(wParam)) {
-		case ID_MODE_EASY:
-			foodExp = 100;
-			break;
-		case ID_MODE_NORMAL:
-			foodExp = 25;
-			break;
-		case ID_MODE_HARD:
-			foodExp = 10;
-			break;
-		case ID_BACKGROUND_BACK1:
-		case ID_BACKGROUND_BACK2:
-		case ID_BACKGROUND_BACK3:
-		case ID_BACKGROUND_BACK4:
-			selectBack = 1;
-			break;
+		
 		}
 		break;
 
@@ -1259,55 +957,4 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 
 	return DefWindowProc(hWnd, uMsg, wParam, lParam);
-}
-
-int GetExpPer(Fish& fish)
-{
-	int now = fish.getExp();
-	int target = fish.getMaxExp();
-	if (fish.getAge() == 0) {
-		if (now < 10)
-			return 0;
-		else if (now < 20)
-			return 2;
-		else
-			return 4;
-	}
-	if (100 - (target - now) < 25)
-		return 0;
-	else if (100 - (target - now) < 50)
-		return 1;
-	else if (100 - (target - now) < 75)
-		return 2;
-	else if (100 - (target - now) < 100)
-		return 3;
-	else
-		return 4;
-}
-
-int CheckAge(int age)
-{
-	switch (age)
-	{
-	case 1:
-		return 0;
-	case 2:
-		return 280;
-	case 3:
-		return 600;
-	case 4:
-		return 930;
-	case 5:
-		return 1270;
-	case 6: return 1600;
-	case 7: return 1900;
-	case 8: return 2230;
-	case 9: return 2550;
-	case 0: return 2870;
-	}
-}
-
-void SetFishRect(Fish& fish, const LONG x, const LONG y)
-{
-	fish.Move(x, y);
 }
